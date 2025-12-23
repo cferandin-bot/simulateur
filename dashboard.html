@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de bord - E-Factu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .bg-pattern {
+            background-image: radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.05) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .btn-modern {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-pattern min-h-screen">
+    <div class="container mx-auto px-4 py-8 fade-in-up">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-chart-pie text-blue-600 mr-3"></i>
+                Tableau de bord
+            </h1>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                Visualisez les statistiques de vos dossiers clients et analysez les tendances
+            </p>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <!-- Assujettis TVA Chart -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+                <h3 class="text-xl font-semibold text-center mb-4 text-gray-800">Clients assujettis à la TVA</h3>
+                <div class="chart-container">
+                    <canvas id="chart-tva" width="320" height="220"></canvas>
+                </div>
+                <div class="flex justify-around mt-4">
+                    <button onclick="filterDashboard('tva','yes')" class="px-4 py-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium transition-colors">
+                        <i class="fas fa-check-circle mr-2"></i>Assujettis TVA
+                    </button>
+                    <button onclick="filterDashboard('tva','no')" class="px-4 py-2 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-800 font-medium transition-colors">
+                        <i class="fas fa-times-circle mr-2"></i>Non assujettis
+                    </button>
+                </div>
+            </div>
+
+            <!-- Établis en France Chart -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+                <h3 class="text-xl font-semibold text-center mb-4 text-gray-800">Clients établis en France</h3>
+                <div class="chart-container">
+                    <canvas id="chart-france" width="320" height="220"></canvas>
+                </div>
+                <div class="flex justify-around mt-4">
+                    <button onclick="filterDashboard('france','yes')" class="px-4 py-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium transition-colors">
+                        <i class="fas fa-check-circle mr-2"></i>En France
+                    </button>
+                    <button onclick="filterDashboard('france','no')" class="px-4 py-2 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-800 font-medium transition-colors">
+                        <i class="fas fa-globe mr-2"></i>À l'étranger
+                    </button>
+                </div>
+            </div>
+
+            <!-- E-INVOICING Chart -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+                <h3 class="text-xl font-semibold text-center mb-4 text-gray-800">Obligation E-INVOICING</h3>
+                <div class="chart-container">
+                    <canvas id="chart-einvoicing" width="320" height="220"></canvas>
+                </div>
+                <div class="flex justify-around mt-4">
+                    <button onclick="filterDashboard('einvoicing','yes')" class="px-4 py-2 rounded-lg bg-red-100 hover:bg-red-200 text-red-800 font-medium transition-colors">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>Obligatoire
+                    </button>
+                    <button onclick="filterDashboard('einvoicing','no')" class="px-4 py-2 rounded-lg bg-green-100 hover:bg-green-200 text-green-800 font-medium transition-colors">
+                        <i class="fas fa-check-circle mr-2"></i>Non obligatoire
+                    </button>
+                </div>
+            </div>
+
+            <!-- E-REPORTING Chart -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+                <h3 class="text-xl font-semibold text-center mb-4 text-gray-800">Obligation E-REPORTING</h3>
+                <div class="chart-container">
+                    <canvas id="chart-ereporting" width="320" height="220"></canvas>
+                </div>
+                <div class="flex justify-around mt-4">
+                    <button onclick="filterDashboard('ereporting','yes')" class="px-4 py-2 rounded-lg bg-red-100 hover:bg-red-200 text-red-800 font-medium transition-colors">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>Obligatoire
+                    </button>
+                    <button onclick="filterDashboard('ereporting','no')" class="px-4 py-2 rounded-lg bg-green-100 hover:bg-green-200 text-green-800 font-medium transition-colors">
+                        <i class="fas fa-check-circle mr-2"></i>Non obligatoire
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Results -->
+        <div id="dashboard-filter-results" class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-8">
+            <!-- Results will be displayed here -->
+        </div>
+
+        <!-- Navigation -->
+        <div class="text-center">
+            <button onclick="window.location.href='client-list.html'" class="btn-modern bg-blue-600 text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-chevron-left mr-2"></i> Retour aux dossiers
+            </button>
+            <button onclick="window.location.href='index.html'" class="btn-modern bg-gray-600 text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:bg-gray-700 transition-colors ml-4">
+                <i class="fas fa-home mr-2"></i> Accueil
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Load dashboard data when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboard();
+        });
+
+        function loadDashboard() {
+            // Get all clients from localStorage
+            const clients = getAllClients();
+            
+            // Calculate data for charts
+            let tvaYes = 0, tvaNo = 0;
+            let franceYes = 0, franceNo = 0;
+            let eInvoicingYes = 0, eInvoicingNo = 0;
+            let eReportingYes = 0, eReportingNo = 0;
+
+            clients.forEach(client => {
+                // TVA data
+                if (client.clientAssujettiTVA === 'yes') tvaYes++;
+                else if (client.clientAssujettiTVA === 'no') tvaNo++;
+
+                // France data
+                if (client.clientEtabliFranceSiren === 'yes') franceYes++;
+                else if (client.clientEtabliFranceSiren === 'no') franceNo++;
+
+                // E-INVOICING and E-REPORTING calculation (skip "hors champ" clients)
+                if (!client.horsChamp) {
+                    const obligations = calculateObligations(client);
+                    if (obligations.eInvoicing) eInvoicingYes++;
+                    else eInvoicingNo++;
+                    
+                    if (obligations.eReporting) eReportingYes++;
+                    else eReportingNo++;
+                }
+            });
+
+            // Draw pie charts
+            drawPieChart('chart-tva', tvaYes, tvaNo, ['#2563eb','#f59e42']);
+            drawPieChart('chart-france', franceYes, franceNo, ['#2563eb','#f59e42']);
+            drawPieChart('chart-einvoicing', eInvoicingYes, eInvoicingNo, ['#ef4444','#10b981']);
+            drawPieChart('chart-ereporting', eReportingYes, eReportingNo, ['#ef4444','#10b981']);
+        }
+
+        // Calculate obligations for a client
+        function calculateObligations(client) {
+            let eInvoicing = false;
+            let eReporting = false;
+            
+            // Skip if not subject to VAT or not established in France
+            if (client.clientAssujettiTVA === 'no' || client.clientEtabliFranceSiren === 'no') {
+                return { eInvoicing: false, eReporting: false };
+            }
+            
+            // E-INVOICING obligations
+            if (client.clientEmetFacturesFrance === 'yes' && client.clientTypesFrance) {
+                if (client.clientTypesFrance.includes('entreprises-tva') || 
+                    client.clientTypesFrance.includes('administrations')) {
+                    eInvoicing = true;
+                }
+            }
+            
+            if (client.receptionFacturesFournisseurs === 'yes') {
+                eInvoicing = true;
+            }
+            
+            // E-REPORTING obligations
+            if (client.clientEmetFacturesFrance === 'yes' && client.clientTypesFrance) {
+                if (client.clientTypesFrance.includes('particuliers') || 
+                    client.clientTypesFrance.includes('associations')) {
+                    eReporting = true;
+                }
+            }
+            
+            if (client.clientsEtranger && Array.isArray(client.clientsEtranger)) {
+                if (client.clientsEtranger.includes('ue') || client.clientsEtranger.includes('hors-ue')) {
+                    eReporting = true;
+                }
+            }
+            
+            if (client.acquisitionsImportations && Array.isArray(client.acquisitionsImportations)) {
+                if (client.acquisitionsImportations.includes('acquisitions-intracommunautaires') || 
+                    client.acquisitionsImportations.includes('importations-autoliquidation')) {
+                    eReporting = true;
+                }
+            }
+            
+            if (client.optionTvaDebits === 'no' && client.natureOperations && 
+                (client.natureOperations.includes('prestations-services') || client.natureOperations.includes('mixte'))) {
+                eReporting = true;
+            }
+            
+            return { eInvoicing, eReporting };
+        }
+
+        function drawPieChart(canvasId, v1, v2, colors) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const total = v1 + v2;
+            if (total === 0) {
+                // Draw empty circle
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height / 2, 90, 0, 2 * Math.PI);
+                ctx.strokeStyle = '#e5e7eb';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Add "Aucune donnée" text
+                ctx.fillStyle = '#9ca3af';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Aucune donnée', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+
+            const angle1 = (v1 / total) * 2 * Math.PI;
+            const angle2 = (v2 / total) * 2 * Math.PI;
+
+            // Draw first slice
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, canvas.height / 2);
+            ctx.arc(canvas.width / 2, canvas.height / 2, 90, 0, angle1, false);
+            ctx.closePath();
+            ctx.fillStyle = colors[0];
+            ctx.fill();
+
+            // Draw second slice
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, canvas.height / 2);
+            ctx.arc(canvas.width / 2, canvas.height / 2, 90, angle1, 2 * Math.PI, false);
+            ctx.closePath();
+            ctx.fillStyle = colors[1];
+            ctx.fill();
+
+            // Add labels
+            ctx.fillStyle = '#374151';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            
+            if (v1 > 0) {
+                const midAngle1 = angle1 / 2;
+                const x1 = canvas.width / 2 + Math.cos(midAngle1) * 60;
+                const y1 = canvas.height / 2 + Math.sin(midAngle1) * 60;
+                ctx.fillText(v1.toString(), x1, y1);
+            }
+            
+            if (v2 > 0) {
+                const midAngle2 = angle1 + angle2 / 2;
+                const x2 = canvas.width / 2 + Math.cos(midAngle2) * 60;
+                const y2 = canvas.height / 2 + Math.sin(midAngle2) * 60;
+                ctx.fillText(v2.toString(), x2, y2);
+            }
+        }
+
+        function filterDashboard(type, value) {
+            const clients = getAllClients();
+            const filteredClients = clients.filter(client => {
+                switch(type) {
+                    case 'tva':
+                        return client.clientAssujettiTVA === value;
+                    case 'france':
+                        return client.clientEtabliFranceSiren === value;
+                    case 'einvoicing':
+                        const obligations = calculateObligations(client);
+                        return value === 'yes' ? obligations.eInvoicing : !obligations.eInvoicing;
+                    case 'ereporting':
+                        const obligationsER = calculateObligations(client);
+                        return value === 'yes' ? obligationsER.eReporting : !obligationsER.eReporting;
+                    default:
+                        return true;
+                }
+            });
+
+            displayFilterResults(filteredClients, type, value);
+        }
+
+        function displayFilterResults(clients, type, value) {
+            const container = document.getElementById('dashboard-filter-results');
+            
+            if (clients.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-search text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-600">Aucun client trouvé pour ce critère</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const typeLabels = {
+                'tva': { yes: 'Assujettis à la TVA', no: 'Non assujettis à la TVA' },
+                'france': { yes: 'Établis en France', no: 'Établis à l\'étranger' },
+                'einvoicing': { yes: 'E-INVOICING obligatoire', no: 'E-INVOICING non obligatoire' },
+                'ereporting': { yes: 'E-REPORTING obligatoire', no: 'E-REPORTING non obligatoire' }
+            };
+
+            const label = typeLabels[type][value];
+            
+            let html = `
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">
+                    <i class="fas fa-filter mr-2 text-blue-600"></i>
+                    Clients ${label} (${clients.length})
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            `;
+
+            clients.forEach(client => {
+                const statusBadge = getStatusBadge(client.status);
+                
+                // Check if client is "hors champ"
+                let obligationsInfo = '';
+                if (client.horsChamp === true) {
+                    obligationsInfo = '<p class="text-xs text-gray-600 font-semibold mt-2"><i class="fas fa-info-circle mr-1"></i>Hors champ de la réforme</p>';
+                } else {
+                    const obligations = calculateObligations(client);
+                    const obligationsText = [];
+                    if (obligations.eInvoicing) obligationsText.push('E-INVOICING');
+                    if (obligations.eReporting) obligationsText.push('E-REPORTING');
+                    
+                    if (obligationsText.length > 0) {
+                        obligationsInfo = `<p class="text-xs text-red-600 font-semibold mt-2"><i class="fas fa-exclamation-triangle mr-1"></i>${obligationsText.join(', ')}</p>`;
+                    } else {
+                        obligationsInfo = '<p class="text-xs text-green-600 font-semibold mt-2"><i class="fas fa-check-circle mr-1"></i>Aucune obligation</p>';
+                    }
+                }
+                
+                // Get questionnaire stats
+                const venteStats = getQuestionnaireStatsForClient(client, 'vente');
+                const achatStats = getQuestionnaireStatsForClient(client, 'achat');
+                const venteComplete = venteStats.answered >= venteStats.total;
+                const achatComplete = achatStats.answered >= achatStats.total;
+                
+                // Build questionnaire access buttons
+                let questionnaireButtons = '';
+                if (!venteComplete || !achatComplete) {
+                    questionnaireButtons = `
+                        <div class="mt-3 pt-3 border-t border-gray-200 flex flex-wrap gap-2">
+                            ${!venteComplete ? `<button onclick="goToQuestionnaire('${client.name}', 'vente')" class="flex-1 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors">
+                                <i class="fas fa-arrow-up mr-1"></i> Vente (${venteStats.answered}/${venteStats.total})
+                            </button>` : ''}
+                            ${!achatComplete ? `<button onclick="goToQuestionnaire('${client.name}', 'achat')" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors">
+                                <i class="fas fa-arrow-down mr-1"></i> Achat (${achatStats.answered}/${achatStats.total})
+                            </button>` : ''}
+                        </div>
+                    `;
+                } else {
+                    questionnaireButtons = `
+                        <div class="mt-3 pt-3 border-t border-gray-200">
+                            <button onclick="goToDossier('${client.id}')" class="w-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors">
+                                <i class="fas fa-folder-open mr-1"></i> Voir le dossier
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                html += `
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-blue-300 transition-colors">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-semibold text-gray-800">${client.name}</h4>
+                            ${statusBadge}
+                        </div>
+                        <p class="text-sm text-gray-600 mb-1">
+                            <i class="fas fa-folder mr-1 text-blue-500"></i>
+                            ${client.dossierNum || 'Dossier non renseigné'}
+                        </p>
+                        ${client.activity ? `<p class="text-sm text-gray-600 mb-1"><i class="fas fa-briefcase mr-1 text-green-500"></i>${client.activity}</p>` : ''}
+                        ${obligationsInfo}
+                        ${questionnaireButtons}
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function getAllClients() {
+            try {
+                const clientsData = localStorage.getItem('clients');
+                if (clientsData) {
+                    return JSON.parse(clientsData);
+                }
+            } catch (e) {
+                console.error('Error parsing clients data:', e);
+            }
+            return [];
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'en_cours': '<span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-full">🟡 En cours</span>',
+                'termine': '<span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full">🟢 Terminé</span>',
+                'archive': '<span class="bg-gray-100 text-gray-800 text-xs font-bold px-2 py-1 rounded-full">⚫ Archivé</span>'
+            };
+            return badges[status] || badges['en_cours'];
+        }
+        
+        // Calculate questionnaire statistics for a client
+        function getQuestionnaireStatsForClient(client, wizardType) {
+            const totalQuestions = {
+                vente: 33,
+                achat: 19
+            };
+            
+            const total = totalQuestions[wizardType] || 0;
+            let answered = 0;
+            
+            // Check answers in analyses
+            if (client.analyses && client.analyses[wizardType] && client.analyses[wizardType].answers) {
+                const answers = client.analyses[wizardType].answers;
+                answered = Object.keys(answers).filter(key => {
+                    if (!isNaN(parseInt(key))) {
+                        const answer = answers[key];
+                        return answer !== null && answer !== undefined && answer !== '';
+                    }
+                    return false;
+                }).length;
+            }
+            
+            // Also check localStorage for wizard answers
+            const wizardKey = `wizard_${client.name}_${wizardType}`;
+            try {
+                const wizardAnswers = localStorage.getItem(wizardKey);
+                if (wizardAnswers) {
+                    const parsedAnswers = JSON.parse(wizardAnswers);
+                    if (Array.isArray(parsedAnswers)) {
+                        const wizardAnsweredCount = parsedAnswers.filter(answer => {
+                            return answer !== null && answer !== undefined && answer !== '';
+                        }).length;
+                        answered = Math.max(answered, wizardAnsweredCount);
+                    } else if (typeof parsedAnswers === 'object') {
+                        const wizardAnsweredCount = Object.keys(parsedAnswers).filter(key => {
+                            if (!isNaN(parseInt(key))) {
+                                const answer = parsedAnswers[key];
+                                return answer !== null && answer !== undefined && answer !== '';
+                            }
+                            return false;
+                        }).length;
+                        answered = Math.max(answered, wizardAnsweredCount);
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur lors de la lecture des réponses wizard:', error);
+            }
+            
+            return { answered, total };
+        }
+        
+        // Navigate to questionnaire
+        function goToQuestionnaire(clientName, type) {
+            window.location.href = `wizard.html?client=${encodeURIComponent(clientName)}&type=${type}`;
+        }
+        
+        // Navigate to dossier
+        function goToDossier(clientId) {
+            window.location.href = `dossier.html?client=${clientId}`;
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questionnaire - E-Factu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Progress Bar Styling (comme dans Florian.html) */
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            height: 0.75rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #dc2626, #ef4444);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+        }
+        
+        /* Enhanced button animations */
+        .btn-hover-effect {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-hover-effect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-hover-effect:active {
+            transform: translateY(0);
+        }
+        
+        /* Answer button animations */
+        .answer-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .answer-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .answer-btn:active {
+            transform: translateY(-1px);
+        }
+        
+        /* Question container enhancement */
+        .question-container {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .question-container:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+        
+        /* Fade in animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        /* Pulse animation for selected answer */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .pulse-selected {
+            animation: pulse 0.3s ease-in-out;
+        }
+        
+        /* Enhanced selected button styles */
+        .answer-btn.selected {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3), 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 3px solid #3b82f6;
+            position: relative;
+        }
+        
+        .answer-btn.selected::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+        }
+        
+        .answer-btn.selected::after {
+            content: '✓';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 1;
+        }
+        
+        /* Background pattern */
+        .bg-pattern {
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(79, 70, 229, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(99, 102, 241, 0.03) 0%, transparent 50%);
+        }
+        
+        /* Modal overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Modal content */
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: scale(0.9) translateY(-20px);
+            transition: all 0.3s ease;
+        }
+        
+        .modal-overlay.show .modal-content {
+            transform: scale(1) translateY(0);
+        }
+        
+        /* Modal buttons */
+        .modal-btn {
+            transition: all 0.3s ease;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .modal-btn-cancel {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+        }
+        
+        .modal-btn-cancel:hover {
+            background: linear-gradient(135deg, #4b5563, #374151);
+        }
+        
+        .modal-btn-confirm {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .modal-btn-confirm:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen bg-pattern">
+    <!-- Wizard Screen -->
+    <div id="wizard-screen" class="p-8 md:p-12 fade-in-up">
+        <!-- Client name display -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-user text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">Client</p>
+                        <p id="client-name-display" class="text-lg font-bold text-gray-800">Chargement...</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-gray-500 font-medium">Type d'analyse</p>
+                    <p id="analysis-type-display" class="text-lg font-semibold text-red-600">Chargement...</p>
+                </div>
+            </div>
+        </div>
+        <h2 id="wizard-title" class="text-3xl font-bold text-center mb-4 text-gray-800">Analyse des flux</h2>
+        <!-- Barre de progression -->
+        <div class="progress-bar-container">
+            <div id="wizard-progress-bar" class="progress-bar"></div>
+        </div>
+        <div id="question-container" class="question-container p-8 rounded-xl min-h-[180px] flex items-center justify-center">
+            <div class="text-center">
+                <p id="question-number" class="text-lg font-semibold text-red-600 mb-4">Chargement...</p>
+                <p id="question-text" class="text-xl text-center font-medium text-gray-700 leading-relaxed">Chargement de la question...</p>
+            </div>
+        </div>
+        <div class="flex justify-center space-x-6 my-10">
+            <button onclick="answerQuestion('yes')" class="answer-btn bg-gradient-to-r from-green-500 to-green-600 text-white font-bold py-4 px-12 rounded-xl shadow-lg hover:from-green-600 hover:to-green-700">
+                <i class="fas fa-check mr-2"></i>Oui
+            </button>
+            <button onclick="answerQuestion('no')" class="answer-btn bg-gradient-to-r from-red-500 to-red-600 text-white font-bold py-4 px-12 rounded-xl shadow-lg hover:from-red-600 hover:to-red-700">
+                <i class="fas fa-times mr-2"></i>Non
+            </button>
+            <button onclick="answerQuestion('unknown')" class="answer-btn bg-gradient-to-r from-gray-500 to-gray-600 text-white font-bold py-4 px-12 rounded-xl shadow-lg hover:from-gray-600 hover:to-gray-700">
+                <i class="fas fa-question mr-2"></i>Je ne sais pas
+            </button>
+        </div>
+        
+        <!-- Custom answer buttons for specific questions -->
+        <div id="custom-answer-buttons" class="hidden flex justify-center space-x-4 my-10">
+            <button onclick="answerQuestion('client')" class="answer-btn bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:from-red-700 hover:to-red-800">
+                <i class="fas fa-user mr-2"></i>Le client (via son logiciel de facturation ou sa PA)
+            </button>
+            <button onclick="answerQuestion('cabinet')" class="answer-btn bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:from-purple-600 hover:to-purple-700">
+                <i class="fas fa-building mr-2"></i>Le cabinet d'expertise comptable (par mandat)
+            </button>
+            <button onclick="answerQuestion('undefined')" class="answer-btn bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:from-orange-600 hover:to-orange-700">
+                <i class="fas fa-question-circle mr-2"></i>Ce point n'a pas encore été défini
+            </button>
+        </div>
+        <div class="flex justify-between items-center mt-10">
+            <div class="flex space-x-4">
+                <button onclick="confirmGoHome()" class="btn-hover-effect bg-gradient-to-r from-gray-600 to-gray-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:from-gray-700 hover:to-gray-800">
+                    <i class="fas fa-home mr-2"></i> Accueil
+                </button>
+                <button onclick="previousQuestion()" id="prev-btn" class="btn-hover-effect bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:from-red-700 hover:to-red-800">
+                    <i class="fas fa-chevron-left mr-2"></i> Précédent
+                </button>
+            </div>
+            <div></div>
+            <div class="flex space-x-4">
+                <button onclick="showDossierScreen()" id="dossier-screen-btn" class="hidden btn-hover-effect bg-gradient-to-r from-red-700 to-red-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:from-red-800 hover:to-red-900">
+                    Passer au dossier de travail <i class="fas fa-clipboard-list ml-2"></i>
+                </button>
+                <button onclick="nextQuestion()" id="next-btn" class="btn-hover-effect bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:from-red-700 hover:to-red-800 opacity-50 cursor-not-allowed" disabled>
+                    Suivant <i class="fas fa-chevron-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmation -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="text-center">
+                <div class="mb-6">
+                    <div class="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-white text-2xl"></i>
+                    </div>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Attention !</h3>
+                <p class="text-gray-600 text-lg mb-6">
+                    Vous êtes sur le point de quitter l'analyse en cours.<br>
+                    <span class="font-semibold text-red-600">Vos réponses seront sauvegardées automatiquement.</span>
+                </p>
+                <p class="text-gray-500 mb-8">
+                    Vous pourrez reprendre votre analyse plus tard depuis la liste des clients.
+                </p>
+                <div class="flex space-x-4 justify-center">
+                    <button onclick="closeConfirmModal()" class="modal-btn modal-btn-cancel">
+                        <i class="fas fa-times mr-2"></i>Annuler
+                    </button>
+                    <button onclick="goHome()" class="modal-btn modal-btn-confirm">
+                        <i class="fas fa-home mr-2"></i>Quitter l'analyse
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('Script wizard.html chargé');
+        
+        // Application State
+        let currentQuestionIndex = 0;
+        let wizardAnswers = [];
+        let currentClient = null;
+        let activeWizardType = null;
+        
+        // Questions complètes pour l'analyse des flux (reprises de Florian.html)
+        const questions = {
+            vente: [
+                { q: "Votre client émet-t-il des factures pour des biens/services qui ont déjà été payés (ex: paiement à la commande) ?", uc: ['2'] },
+                { q: "Votre client demande-t-il des acomptes à ses clients avant la livraison finale ou la fin de la prestation ?", uc: ['20_21'] },
+                { q: "Votre client propose-t-il un escompte pour paiement anticipé ?", uc: ['22a', '22b'] },
+                { q: "Votre client cède-t-il ses créances à une société d'affacturage (factor) ?", uc: ['8', '10'], conditional: true },
+                { q: "Le paiement des factures de votre client est-il parfois versé à un tiers qui n'est pas un factor (ex: distributeur, dépositaire) ?", uc: ['9'] },
+                { q: "Un tiers (comme une marketplace ou un distributeur) émet-t-il les factures au nom et pour le compte de votre client ?", uc: ['17b', '19a'], conditional: true },
+                { q: "Votre client vend-t-il ses produits/services via une place de marché (marketplace) qui encaisse le paiement ?", uc: ['17a'] },
+                { q: "Votre client agit-t-il en tant que sous-traitant pour un autre professionnel (le donneur d'ordre) ?", uc: ['13'] },
+                { q: "Votre client fait-t-il partie d'un groupement d'entreprises (co-traitance) pour réaliser une prestation ?", uc: ['14'], conditional: true },
+                { q: "Votre client facture-t-il plusieurs de ses bons de commande ou de livraison sur une seule et même facture ?", uc: ['1'] },
+                { q: "Votre client émet-t-il des factures de débours (remboursement de dépenses payées pour le compte d'un tiers) ?", uc: ['16'] },
+                { q: "Votre client émet-t-il des notes de débit ?", uc: ['18'] },
+                { q: "Votre client émet-il des factures où le payeur est différent du client (ex: assurance, mutuelle, organisme public) ?", uc: ['3'] },
+                { q: "Émettez-vous des factures avec prise en charge partielle par un tiers (subvention, assurance, aide publique) ?", uc: ['4b'] },
+                { q: "Avez-vous des clients qui émettent eux-mêmes les factures pour votre compte (auto-facturation) ?", uc: ['23'] },
+                { q: "Recevez-vous des arrhes (sommes versées à la commande avec possibilité d'annulation) de vos clients ?", uc: ['24'] },
+                { q: "Votre client émet-t-il ou accepte-t-il des bons ou cartes cadeaux ?", uc: ['25'] },
+                { q: "Les factures de votre client (émises ou reçues) incluent-elles des clauses de réserve contractuelle (ex: clause de réserve de propriété) ?", uc: ['26'] },
+                { q: "Les factures de votre client (émises ou reçues) combinent-elles une opération principale et une ou plusieurs opérations accessoires (ex: vente de biens + transport) ?", uc: ['31'] },
+                { q: "Votre client émet-t-il ou reçoit-t-il des factures pour des paiements mensuels récurrents (ex: abonnements, loyers) ?", uc: ['32'] },
+                { q: "Votre client gère-t-il des encaissements partiels ou des annulations d'encaissement ?", uc: ['34'] },
+                { q: "Votre client fait-t-il partie d'un groupe TVA (régime de l'assujetti unique) ?", uc: ['29'] },
+                { q: "L'activité de votre client relève-t-elle d'un régime de TVA sur la marge (ex: agences de voyages, biens d'occasion, œuvres d'art) ?", uc: ['33'] },
+                { q: "Votre client, qui vend habituellement à des particuliers (B2C), doit-t-il parfois émettre une facture à un professionnel qui le demande après l'achat (ex: restaurateur, commerçant) ?", uc: ['30'] },
+                { q: "Votre client traite-t-il des opérations soumises au secret professionnel ou des échanges de données sensibles ?", uc: ['36'] },
+                { q: "Votre client émet-t-il ou reçoit-t-il des notes d'auteur ?", uc: ['35'] },
+                { q: "Votre client est-il Gérant ou associé d'une Société en Participation (SEP) ou d'un groupement momentané d'entreprises (GME) nécessitant une gestion distincte des factures d'achat et de vente pour le compte de cette entité ?", uc: ['37'] },
+                { q: "Votre client émet-il des factures pour des articles composites (kits, packs) ou des regroupements (par commande/livraison) nécessitant des lignes de détail, d'information ou de sous-totaux ?", uc: ['38'] },
+                { q: "Votre client (Vendeur principal) regroupe-t-il sur une seule facture ses propres prestations et celles d'autres vendeurs tiers (Vendeurs secondaires) pour un même acheteur ?", uc: ['39'] },
+                { q: "Votre client pratique-t-il la compensation (clearing/netting) avec ses partenaires, en déduisant le montant de ses factures de vente du paiement de ses factures d'achat ?", uc: ['40'] },
+                { q: "Votre client réalise-t-il des transactions via des sociétés de Barter (troc interentreprises), impliquant un paiement partiel en numéraire (souvent la TVA) et une compensation en crédits pour le solde ?", uc: ['41'] },
+                { q: "Votre client commerçant réalise-t-il des ventes à des particuliers non-résidents (touristes) donnant lieu à une détaxe (remboursement de TVA) ?", uc: ['42'] },
+                { q: "Gestion des statuts obligatoires (Ventes) : Qui sera chargé de la transmission du statut 'Encaissée' pour les factures de prestations de services et les acomptes ?", uc: ['status_management'], customAnswers: true }
+            ],
+            achat: [
+                { q: "Votre client reçoit-t-il des factures de la part de ses fournisseurs en auto-facturation (c'est-à-dire que votre client crée lui-même la facture de son fournisseur) ?", uc: ['19b'] },
+                { q: "Votre client verse-t-il des acomptes à ses fournisseurs ?", uc: ['20_21'] },
+                { q: "Un tiers (ex: centre de services partagés, cabinet d'expertise comptable) gère-t-il la réception et le traitement des factures d'achat pour votre client ?", uc: ['11', '12'] },
+                { q: "Les collaborateurs de votre client engagent-ils des frais professionnels (ex: hôtel, restaurant, transport) qui sont directement facturés à l'entreprise ?", uc: ['5'] },
+                { q: "Les collaborateurs de votre client engagent-ils des frais professionnels pour lesquels ils ne reçoivent pas de facture au nom de l'entreprise (ex: simples tickets de caisse) ?", uc: ['6'] },
+                { q: "Votre client utilise-t-il des cartes d'achat professionnelles (cartes logées) pour régler ses fournisseurs ?", uc: ['7'] },
+                { q: "Votre client fait-t-il appel à des sous-traitants qu'il est parfois amené à payer directement, à la place du donneur d'ordre ?", uc: ['13'] },
+                { q: "Votre client agit-t-il en tant que mandataire dans un groupement d'entreprises (co-traitance) ?", uc: ['14'] },
+                { q: "Votre client reçoit-t-il des factures de fournisseurs qui ont recours à l'affacturage ?", uc: ['8', '10'] },
+                { q: "Le paiement des factures de votre client est-il effectué par une autre société du groupe (centrale de paiement) ?", uc: ['3'] },
+                { q: "Votre client reçoit-t-il des factures dont une partie est prise en charge par un tiers (ex: subvention, assurance) ?", uc: ['4'] },
+                { q: "Votre client reçoit-t-il des factures regroupant plusieurs de ses bons de commande ou de livraison ?", uc: ['1'] },
+                { q: "Votre client reçoit-t-il des factures de débours ?", uc: ['16'] },
+                { q: "Les factures de votre client (émises ou reçues) incluent-elles des clauses de réserve contractuelle (ex: clause de réserve de propriété) ?", uc: ['26'] },
+                { q: "Votre client traite-t-il des opérations soumises au secret professionnel ou des échanges de données sensibles ?", uc: ['36'] },
+                { q: "Votre client émet-t-il ou reçoit-t-il des notes d'auteur ?", uc: ['35'] },
+                { q: "Votre client est-il Gérant ou associé d'une Société en Participation (SEP) ou d'un groupement momentané d'entreprises (GME) nécessitant une gestion distincte des factures d'achat et de vente pour le compte de cette entité ?", uc: ['37'] },
+                { q: "Votre client pratique-t-il la compensation (clearing/netting) avec ses partenaires, en déduisant le montant de ses factures de vente du paiement de ses factures d'achat ?", uc: ['40'] },
+                { q: "Votre client réalise-t-il des transactions via des sociétés de Barter (troc interentreprises), impliquant un paiement partiel en numéraire (souvent la TVA) et une compensation en crédits pour le solde ?", uc: ['41'] }
+            ]
+        };
+
+        // Initialize wizard
+        function initializeWizard() {
+            console.log('Initialisation du wizard...');
+            
+            // Get client and wizard type from URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const clientName = urlParams.get('client');
+            const wizardType = urlParams.get('type');
+            const answersParam = urlParams.get('answers');
+            
+            console.log('Paramètres URL:', { clientName, wizardType, answersParam });
+            
+            if (!clientName || !wizardType) {
+                console.error('Paramètres manquants, redirection vers new-dossier.html');
+                window.location.href = 'new-dossier.html';
+                return;
+            }
+            
+            currentClient = { name: clientName };
+            activeWizardType = wizardType;
+            
+            console.log('Client et type définis:', { currentClient, activeWizardType });
+            
+            // Load answers from URL parameter if available, otherwise from localStorage
+            if (answersParam) {
+                try {
+                    wizardAnswers = JSON.parse(answersParam);
+                    console.log('Réponses chargées depuis URL:', wizardAnswers);
+                    
+                    // Save to localStorage for consistency
+                    const key = `wizard_${currentClient.name}_${activeWizardType}`;
+                    localStorage.setItem(key, answersParam);
+                } catch (error) {
+                    console.error('Erreur lors du parsing des réponses URL:', error);
+                    loadSavedAnswers();
+                }
+            } else {
+                // Load saved answers from localStorage
+                loadSavedAnswers();
+            }
+            
+            // Update client name and analysis type display
+            document.getElementById('client-name-display').textContent = clientName;
+            const analysisTypeText = wizardType === 'achat' ? 'Analyse des flux d\'achat' : 'Analyse des flux de vente';
+            document.getElementById('analysis-type-display').textContent = analysisTypeText;
+            
+            // Set title
+            const title = wizardType === 'achat' ? 'Analyse des flux d\'achat' : 'Analyse des flux de vente';
+            document.getElementById('wizard-title').textContent = title;
+            
+            // Always start from the first question
+            currentQuestionIndex = 0;
+            
+            // Load the question
+            loadQuestion();
+            
+            console.log('Wizard initialisé avec succès, question actuelle:', currentQuestionIndex);
+        }
+        
+        // Load saved answers from localStorage
+        function loadSavedAnswers() {
+            const key = `wizard_${currentClient.name}_${activeWizardType}`;
+            const savedAnswers = localStorage.getItem(key);
+            if (savedAnswers) {
+                try {
+                    wizardAnswers = JSON.parse(savedAnswers);
+                    console.log(`Réponses chargées pour ${currentClient.name}:`, wizardAnswers);
+                } catch (error) {
+                    console.error('Erreur lors du chargement des réponses:', error);
+                    wizardAnswers = [];
+                }
+            } else {
+                wizardAnswers = [];
+            }
+        }
+
+        function loadQuestion() {
+            const currentQuestions = questions[activeWizardType] || [];
+            
+            if (currentQuestionIndex < currentQuestions.length) {
+                const question = currentQuestions[currentQuestionIndex];
+                document.getElementById('question-number').textContent = `Question ${currentQuestionIndex + 1} sur ${currentQuestions.length}`;
+                document.getElementById('question-text').textContent = question.q || question;
+                
+                // Clear any existing conditional question
+                hideConditionalQuestion();
+                
+                // Clear all button selections first
+                clearAllButtonSelections();
+                
+                // Handle custom answers for specific questions
+                if (question.customAnswers) {
+                    showCustomAnswerButtons();
+                } else {
+                    showStandardAnswerButtons();
+                }
+                
+                updateProgress();
+                updateNavigation();
+                
+                // Check if we have an answer for this question and restore visual selection
+                const currentAnswer = wizardAnswers[currentQuestionIndex];
+                if (currentAnswer) {
+                    // Enable next button
+                    const nextBtn = document.getElementById('next-btn');
+                    nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    nextBtn.disabled = false;
+                    
+                    // Restore visual selection for the answered question
+                    restoreSelectedAnswer(currentAnswer);
+                    
+                    // Show conditional question if answer is 'yes' and question is conditional
+                    if (currentAnswer === 'yes' && question.conditional) {
+                        showConditionalQuestion(question);
+                    }
+                } else {
+                    // Disable next button if no answer
+                    const nextBtn = document.getElementById('next-btn');
+                    nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    nextBtn.disabled = true;
+                }
+            }
+        }
+        
+        function showConditionalQuestion(question) {
+            const questionContainer = document.getElementById('question-container');
+            
+            // Remove existing conditional question if any
+            const existingConditional = document.getElementById('conditional-question');
+            if (existingConditional) {
+                existingConditional.remove();
+            }
+            
+            // Create conditional question div
+            const conditionalDiv = document.createElement('div');
+            conditionalDiv.id = 'conditional-question';
+            conditionalDiv.className = 'mt-6 p-4 bg-red-50 border border-red-200 rounded-lg w-full';
+            
+            // Determine which conditional question to show based on the question index
+            const currentQuestions = questions[activeWizardType] || [];
+            const questionIndex = currentQuestions.findIndex(q => q.q === question.q);
+            
+            let conditionalHTML = '';
+            
+            if (questionIndex === 3) { // Affacturage question
+                conditionalHTML = `
+                    <div class="mb-3">
+                        <p class="text-sm font-semibold text-red-800 mb-2">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Question complémentaire :
+                        </p>
+                        <p class="text-gray-700 font-medium">La décision de céder la créance est-elle prise avant ou après l'émission de la facture ?</p>
+                    </div>
+                    <div class="flex justify-center space-x-4">
+                        <button onclick="answerConditionalQuestion('before')" class="conditional-btn bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:from-green-600 hover:to-green-700">
+                            <i class="fas fa-clock mr-2"></i>Avant l'émission
+                        </button>
+                        <button onclick="answerConditionalQuestion('after')" class="conditional-btn bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:from-orange-600 hover:to-orange-700">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>Après l'émission
+                        </button>
+                    </div>
+                `;
+            } else if (questionIndex === 5) { // Tiers émission factures question
+                conditionalHTML = `
+                    <div class="mb-3">
+                        <p class="text-sm font-semibold text-red-800 mb-2">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Question complémentaire :
+                        </p>
+                        <p class="text-gray-700 font-medium">Ce tiers gère-t-il également l'encaissement des paiements pour le compte de votre client ?</p>
+                    </div>
+                    <div class="flex justify-center space-x-4">
+                        <button onclick="answerConditionalQuestion('yes')" class="conditional-btn bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:from-green-600 hover:to-green-700">
+                            <i class="fas fa-check mr-2"></i>Oui
+                        </button>
+                        <button onclick="answerConditionalQuestion('no')" class="conditional-btn bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:from-red-600 hover:to-red-700">
+                            <i class="fas fa-times mr-2"></i>Non
+                        </button>
+                    </div>
+                `;
+            } else if (questionIndex === 8) { // Co-traitance question
+                conditionalHTML = `
+                    <div class="mb-3">
+                        <p class="text-sm font-semibold text-red-800 mb-2">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Question complémentaire :
+                        </p>
+                        <p class="text-gray-700 font-medium">Votre client est-il le mandataire du groupement ?</p>
+                    </div>
+                    <div class="flex justify-center space-x-4">
+                        <button onclick="answerConditionalQuestion('yes')" class="conditional-btn bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:from-green-600 hover:to-green-700">
+                            <i class="fas fa-check mr-2"></i>Oui
+                        </button>
+                        <button onclick="answerConditionalQuestion('no')" class="conditional-btn bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:from-red-600 hover:to-red-700">
+                            <i class="fas fa-times mr-2"></i>Non
+                        </button>
+                    </div>
+                `;
+            }
+            
+            conditionalDiv.innerHTML = conditionalHTML;
+            
+            // Insert the conditional question right after the main question text
+            const questionText = document.getElementById('question-text');
+            const textCenterDiv = questionContainer.querySelector('.text-center');
+            
+            // Insert after the text-center div
+            textCenterDiv.appendChild(conditionalDiv);
+            
+            // Restore conditional answer if exists
+            const conditionalAnswer = wizardAnswers[`conditional_${currentQuestionIndex}`];
+            if (conditionalAnswer) {
+                restoreConditionalAnswer(conditionalAnswer);
+            }
+        }
+        
+        function hideConditionalQuestion() {
+            const existingConditional = document.getElementById('conditional-question');
+            if (existingConditional) {
+                existingConditional.remove();
+            }
+        }
+        
+        function showCustomAnswerButtons() {
+            // Hide standard answer buttons
+            const standardButtons = document.querySelector('.flex.justify-center.space-x-6.my-10');
+            if (standardButtons) {
+                standardButtons.style.display = 'none';
+            }
+            
+            // Show custom answer buttons
+            const customButtonsContainer = document.getElementById('custom-answer-buttons');
+            if (customButtonsContainer) {
+                customButtonsContainer.style.display = 'flex';
+            }
+        }
+        
+        function showStandardAnswerButtons() {
+            // Show standard answer buttons
+            const standardButtons = document.querySelector('.flex.justify-center.space-x-6.my-10');
+            if (standardButtons) {
+                standardButtons.style.display = 'flex';
+            }
+            
+            // Hide custom answer buttons
+            const customButtonsContainer = document.getElementById('custom-answer-buttons');
+            if (customButtonsContainer) {
+                customButtonsContainer.style.display = 'none';
+            }
+        }
+        
+        function answerConditionalQuestion(answer) {
+            wizardAnswers[`conditional_${currentQuestionIndex}`] = answer;
+            saveAnswersToStorage();
+            
+            // Update button styles
+            const buttons = document.querySelectorAll('.conditional-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('ring-4', 'ring-blue-300', 'scale-105');
+            });
+            
+            const selectedButton = document.querySelector(`button[onclick="answerConditionalQuestion('${answer}')"]`);
+            if (selectedButton) {
+                selectedButton.classList.add('ring-4', 'ring-blue-300', 'scale-105');
+            }
+        }
+        
+        function restoreConditionalAnswer(answer) {
+            const buttons = document.querySelectorAll('.conditional-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('ring-4', 'ring-blue-300', 'scale-105');
+            });
+            
+            const selectedButton = document.querySelector(`button[onclick="answerConditionalQuestion('${answer}')"]`);
+            if (selectedButton) {
+                selectedButton.classList.add('ring-4', 'ring-blue-300', 'scale-105');
+            }
+        }
+        
+        function clearAllButtonSelections() {
+            // Clean reset of all answer buttons - preserve functionality
+            const buttons = document.querySelectorAll('button[onclick^="answerQuestion"]');
+            buttons.forEach(btn => {
+                // Remove only selection-related classes
+                btn.classList.remove('selected', 'ring-4', 'ring-blue-300', 'pulse-selected');
+                
+                // Remove only selection-related inline styles
+                btn.style.transform = '';
+                btn.style.boxShadow = '';
+                btn.style.border = '';
+                
+                // Keep the original button styling intact
+                // Don't rebuild the entire className to preserve onclick handlers
+            });
+        }
+        
+        function restoreSelectedAnswer(answer) {
+            // Remove all selections first
+            clearAllButtonSelections();
+            
+            // Restore the selected answer
+            const selectedButton = document.querySelector(`button[onclick="answerQuestion('${answer}')"]`);
+            if (selectedButton) {
+                selectedButton.classList.add('selected', 'pulse-selected');
+                // Add visual indicators
+                selectedButton.style.transform = 'scale(1.05)';
+                selectedButton.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.5)';
+            }
+            
+            // Ensure proper button display based on question type
+            const currentQuestions = questions[activeWizardType] || [];
+            const currentQuestion = currentQuestions[currentQuestionIndex];
+            
+            if (currentQuestion && currentQuestion.customAnswers) {
+                // For custom answer questions, ensure custom buttons are shown
+                showCustomAnswerButtons();
+            } else {
+                // For standard questions, ensure standard buttons are shown
+                showStandardAnswerButtons();
+            }
+        }
+        
+        function clearAllButtonSelections() {
+            // Clean reset of all answer buttons - preserve functionality
+            const buttons = document.querySelectorAll('button[onclick^="answerQuestion"]');
+            buttons.forEach(btn => {
+                // Remove only selection-related classes
+                btn.classList.remove('selected', 'ring-4', 'ring-blue-300', 'pulse-selected');
+                
+                // Remove only selection-related inline styles
+                btn.style.transform = '';
+                btn.style.boxShadow = '';
+                btn.style.border = '';
+                
+                // Keep the original button styling intact
+                // Don't rebuild the entire className to preserve onclick handlers
+            });
+        }
+
+        function answerQuestion(answer) {
+            console.log('Fonction answerQuestion appelée avec:', answer);
+            console.log('Question actuelle:', currentQuestionIndex);
+            
+            wizardAnswers[currentQuestionIndex] = answer;
+            
+            // Save answers to localStorage immediately
+            saveAnswersToStorage();
+            
+            // Enable next button
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            nextBtn.disabled = false;
+            
+            // Clear all selections first
+            clearAllButtonSelections();
+            
+            // Highlight selected button with enhanced styling
+            const selectedButton = document.querySelector(`button[onclick="answerQuestion('${answer}')"]`);
+            if (selectedButton) {
+                selectedButton.classList.add('selected', 'pulse-selected');
+                // Add a visual indicator that this button is selected
+                selectedButton.style.transform = 'scale(1.05)';
+                selectedButton.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.5)';
+            }
+            
+            // Handle conditional questions
+            const currentQuestions = questions[activeWizardType] || [];
+            const currentQuestion = currentQuestions[currentQuestionIndex];
+            
+            if (currentQuestion && currentQuestion.conditional) {
+                if (answer === 'yes') {
+                    showConditionalQuestion(currentQuestion);
+                } else {
+                    hideConditionalQuestion();
+                    // Clear conditional answer if user changes from yes to no
+                    delete wizardAnswers[`conditional_${currentQuestionIndex}`];
+                    saveAnswersToStorage();
+                }
+            }
+            
+            // Ensure proper button display after answering
+            if (currentQuestion && currentQuestion.customAnswers) {
+                // Keep custom buttons visible for custom answer questions
+                showCustomAnswerButtons();
+            } else {
+                // Show standard buttons for standard questions
+                showStandardAnswerButtons();
+            }
+        }
+        
+        // Save answers to localStorage
+        function saveAnswersToStorage() {
+            const key = `wizard_${currentClient.name}_${activeWizardType}`;
+            localStorage.setItem(key, JSON.stringify(wizardAnswers));
+            console.log(`Réponses sauvegardées pour ${currentClient.name}:`, wizardAnswers);
+        }
+
+        function nextQuestion() {
+            if (wizardAnswers[currentQuestionIndex]) {
+                currentQuestionIndex++;
+                
+                // Check if we've completed all questions
+                const currentQuestions = questions[activeWizardType] || [];
+                if (currentQuestionIndex >= currentQuestions.length) {
+                    // Wizard completed - show completion screen
+                    completeWizard();
+                } else {
+                    // Load next question
+                    loadQuestion();
+                }
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                loadQuestion();
+            }
+        }
+
+        function updateProgress() {
+            const currentQuestions = questions[activeWizardType] || [];
+            const progress = ((currentQuestionIndex + 1) / currentQuestions.length) * 100;
+            
+            document.getElementById('wizard-progress-bar').style.width = progress + '%';
+            
+            // Hide dossier button by default - it will only show when wizard is completed
+            const dossierBtn = document.getElementById('dossier-screen-btn');
+            dossierBtn.classList.add('hidden');
+        }
+
+        function updateNavigation() {
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            
+            // Previous button visibility and state
+            if (currentQuestionIndex === 0) {
+                prevBtn.style.visibility = 'hidden';
+            } else {
+                prevBtn.style.visibility = 'visible';
+                prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                prevBtn.disabled = false;
+            }
+            
+            // Next button state
+            if (wizardAnswers[currentQuestionIndex]) {
+                nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                nextBtn.disabled = false;
+            } else {
+                nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                nextBtn.disabled = true;
+            }
+        }
+
+        function showDossierScreen() {
+            // Get client ID from localStorage
+            const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+            const client = clients.find(c => c.name === currentClient.name);
+            
+            if (!client) {
+                console.error('Client non trouvé dans localStorage');
+                window.location.href = 'client-list.html';
+                return;
+            }
+            
+            // Redirect to dossier screen with client ID and answers
+            const params = new URLSearchParams({
+                client: client.id,
+                type: activeWizardType,
+                answers: JSON.stringify(wizardAnswers)
+            });
+            window.location.href = 'dossier.html?' + params.toString();
+        }
+
+        function completeWizard() {
+            // Save answers to localStorage (final save)
+            saveAnswersToStorage();
+            
+            // Show completion message
+            document.getElementById('question-container').innerHTML = `
+                <div class="text-center">
+                    <div class="mb-6">
+                        <i class="fas fa-check-circle text-8xl text-green-500 mb-4 animate-pulse"></i>
+                    </div>
+                    <h3 class="text-3xl font-bold text-gray-800 mb-4">Analyse terminée !</h3>
+                    <p class="text-gray-600 text-lg">Toutes les questions ont été répondues avec succès.</p>
+                    <div class="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                        <p class="text-green-700 font-medium">Vous pouvez maintenant consulter votre dossier de travail pour voir les résultats détaillés.</p>
+                    </div>
+                </div>
+            `;
+            
+            // Hide all answer buttons (Oui, Non, Je ne sais pas)
+            const answerButtonsContainer = document.querySelector('.flex.justify-center.space-x-6.my-10');
+            if (answerButtonsContainer) {
+                answerButtonsContainer.style.display = 'none';
+            }
+            
+            // Hide custom answer buttons (Le client, Le cabinet, Ce point n'a pas encore été défini)
+            const customButtonsContainer = document.getElementById('custom-answer-buttons');
+            if (customButtonsContainer) {
+                customButtonsContainer.style.display = 'none';
+            }
+            
+                         // Hide all navigation buttons and show dossier button
+             const homeBtn = document.querySelector('button[onclick="confirmGoHome()"]');
+             const prevBtn = document.getElementById('prev-btn');
+             const nextBtn = document.getElementById('next-btn');
+             const dossierBtn = document.getElementById('dossier-screen-btn');
+             
+             if (homeBtn) homeBtn.classList.add('hidden');
+             if (prevBtn) prevBtn.classList.add('hidden');
+             if (nextBtn) nextBtn.classList.add('hidden');
+             if (dossierBtn) dossierBtn.classList.remove('hidden');
+             
+             // Center the dossier button
+             const navigationContainer = document.querySelector('.flex.justify-between.items-center.mt-10');
+             if (navigationContainer) {
+                 navigationContainer.classList.remove('justify-between');
+                 navigationContainer.classList.add('justify-center');
+             }
+        }
+
+        // Modal confirmation functions
+        function confirmGoHome() {
+            console.log('Fonction confirmGoHome appelée');
+            
+            // Save current progress before showing modal
+            saveAnswersToStorage();
+            
+            // Show confirmation modal
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.add('show');
+            
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.remove('show');
+            
+            // Restore body scroll
+            document.body.style.overflow = 'auto';
+        }
+        
+        function goHome() {
+            // Close modal
+            closeConfirmModal();
+            
+            // Navigate to home page
+            window.location.href = 'index.html';
+        }
+        
+
+        
+        // Close modal when clicking outside
+        document.getElementById('confirm-modal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeConfirmModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeConfirmModal();
+            }
+        });
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM chargé, vérification des fonctions...');
+            
+            // S'assurer que toutes les fonctions sont dans le scope global
+            window.initializeWizard = initializeWizard;
+            window.loadSavedAnswers = loadSavedAnswers;
+            window.loadQuestion = loadQuestion;
+            window.answerQuestion = answerQuestion;
+            window.nextQuestion = nextQuestion;
+            window.previousQuestion = previousQuestion;
+            window.updateProgress = updateProgress;
+            window.updateNavigation = updateNavigation;
+            window.showDossierScreen = showDossierScreen;
+            window.completeWizard = completeWizard;
+            window.confirmGoHome = confirmGoHome;
+            window.closeConfirmModal = closeConfirmModal;
+            window.goHome = goHome;
+
+            window.saveAnswersToStorage = saveAnswersToStorage;
+            window.showConditionalQuestion = showConditionalQuestion;
+            window.hideConditionalQuestion = hideConditionalQuestion;
+            window.answerConditionalQuestion = answerConditionalQuestion;
+            window.restoreConditionalAnswer = restoreConditionalAnswer;
+            window.clearAllButtonSelections = clearAllButtonSelections;
+            window.restoreSelectedAnswer = restoreSelectedAnswer;
+            window.showCustomAnswerButtons = showCustomAnswerButtons;
+            window.showStandardAnswerButtons = showStandardAnswerButtons;
+            
+            // Vérifier que toutes les fonctions nécessaires sont définies
+            const requiredFunctions = [
+                'initializeWizard',
+                'loadSavedAnswers',
+                'loadQuestion',
+                'answerQuestion',
+                'nextQuestion',
+                'previousQuestion',
+                'updateProgress',
+                'updateNavigation',
+                'showDossierScreen',
+                'completeWizard',
+                'confirmGoHome',
+                'closeConfirmModal',
+                'goHome',
+
+                'saveAnswersToStorage',
+                'showConditionalQuestion',
+                'hideConditionalQuestion',
+                'answerConditionalQuestion',
+                'restoreConditionalAnswer',
+                'clearAllButtonSelections',
+                'restoreSelectedAnswer',
+                'showCustomAnswerButtons',
+                'showStandardAnswerButtons'
+            ];
+            
+            const missingFunctions = requiredFunctions.filter(func => typeof window[func] !== 'function');
+            
+            if (missingFunctions.length > 0) {
+                console.error('Fonctions manquantes:', missingFunctions);
+            } else {
+                console.log('Toutes les fonctions sont définies et disponibles globalement');
+            }
+            
+            // Initialiser le wizard
+            initializeWizard();
+        });
+    </script>
+</body>
+</html>

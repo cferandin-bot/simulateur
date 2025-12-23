@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Résultat Hors Champ - E-Factu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @media print {
+            .no-print { 
+                display: none !important; 
+            }
+            body { 
+                background: white !important; 
+            }
+            .print-page-break {
+                page-break-after: always;
+            }
+        }
+        
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .btn-modern {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .btn-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 fade-in-up">
+        <!-- Header - No Print -->
+        <div class="no-print text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-file-alt text-blue-600 mr-3"></i>
+                Résultat de l'analyse
+            </h1>
+            <p class="text-gray-600">Audit de conformité à la facture électronique</p>
+        </div>
+
+        <!-- Action Buttons - No Print -->
+        <div class="no-print flex justify-center space-x-4 mb-8">
+            <button onclick="generateReport()" class="btn-modern bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:from-purple-700 hover:to-purple-800">
+                <i class="fas fa-file-alt mr-2"></i> Générer le rapport
+            </button>
+            <button onclick="window.print()" class="btn-modern bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800">
+                <i class="fas fa-print mr-2"></i> Imprimer
+            </button>
+            <button onclick="window.location.href='client-list.html'" class="btn-modern bg-gradient-to-r from-gray-600 to-gray-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:from-gray-700 hover:to-gray-800">
+                <i class="fas fa-list mr-2"></i> Retour à la liste
+            </button>
+            <button onclick="window.location.href='index.html'" class="btn-modern bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:from-green-700 hover:to-green-800">
+                <i class="fas fa-home mr-2"></i> Accueil
+            </button>
+        </div>
+
+        <!-- Print Content -->
+        <div id="print-content" class="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-8 border border-gray-200">
+            <!-- Header with Logo/Branding -->
+            <div class="text-center mb-8 pb-6 border-b-2 border-gray-200">
+                <h1 class="text-3xl font-bold text-blue-800 mb-2">
+                    ATTESTATION DE NON-ASSUJETTISSEMENT
+                </h1>
+                <h2 class="text-xl text-gray-700 mb-4">
+                    Réforme de la facture électronique
+                </h2>
+                <p class="text-sm text-gray-600">Document généré le <span id="generation-date"></span></p>
+            </div>
+
+            <!-- Client Information -->
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-building text-blue-600 mr-3"></i>
+                    Informations du dossier
+                </h3>
+                <div class="grid md:grid-cols-2 gap-4 bg-blue-50 p-6 rounded-lg border border-blue-200">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Nom du client</p>
+                        <p class="font-semibold text-gray-900" id="client-name"></p>
+                    </div>
+                    <div id="dossier-num-container" style="display: none;">
+                        <p class="text-sm text-gray-600 mb-1">N° de dossier</p>
+                        <p class="font-semibold text-gray-900" id="dossier-num"></p>
+                    </div>
+                    <div id="activity-container" style="display: none;">
+                        <p class="text-sm text-gray-600 mb-1">Activité</p>
+                        <p class="font-semibold text-gray-900" id="activity"></p>
+                    </div>
+                    <div id="siret-container" style="display: none;">
+                        <p class="text-sm text-gray-600 mb-1">N° SIRET/SIREN</p>
+                        <p class="font-semibold text-gray-900" id="siret"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Result -->
+            <div class="mb-8 bg-green-50 border-2 border-green-300 rounded-xl p-8">
+                <div class="text-center mb-6">
+                    <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <i class="fas fa-check text-white text-4xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-green-800 mb-3">
+                        HORS CHAMP DE LA RÉFORME
+                    </h3>
+                    <p class="text-lg text-green-700 font-semibold" id="raison-hors-champ"></p>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg border border-green-200">
+                    <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                        <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                        Conclusion
+                    </h4>
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        Suite à l'analyse du dossier, il ressort que <strong id="client-name-2"></strong> n'est <strong>pas soumis</strong> aux obligations de la réforme de la facture électronique.
+                    </p>
+                    <p class="text-gray-700 leading-relaxed">
+                        <strong>Aucune action n'est requise</strong> concernant :
+                    </p>
+                    <ul class="list-disc list-inside text-gray-700 mt-3 space-y-2">
+                        <li>L'émission de factures électroniques (E-INVOICING)</li>
+                        <li>La déclaration des transactions (E-REPORTING)</li>
+                        <li>Le choix d'une Plateforme de Dématérialisation Partenaire (PDP)</li>
+                        <li>L'adaptation des systèmes de facturation</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="mb-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
+                <h4 class="font-bold text-blue-800 mb-3 flex items-center">
+                    <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
+                    Informations complémentaires
+                </h4>
+                <div class="text-gray-700 space-y-3">
+                    <p>
+                        <i class="fas fa-exclamation-triangle text-orange-500 mr-2"></i>
+                        <strong>Attention :</strong> Cette attestation est basée sur les informations fournies lors de l'analyse. En cas de changement de situation (assujettissement à la TVA, établissement en France, etc.), une nouvelle analyse devra être effectuée.
+                    </p>
+                    <p>
+                        <i class="fas fa-clock text-blue-600 mr-2"></i>
+                        <strong>À surveiller :</strong> La réglementation sur la facture électronique peut évoluer. Il est recommandé de se tenir informé des évolutions légales et réglementaires.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="mb-8">
+                <h4 class="font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-clipboard-check text-green-600 mr-2"></i>
+                    Recommandations
+                </h4>
+                <div class="space-y-3">
+                    <div class="flex items-start p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 mt-1">
+                            <span class="text-blue-600 font-bold text-sm">1</span>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800 mb-1">Conserver ce document</p>
+                            <p class="text-gray-600 text-sm">Gardez une copie de cette attestation dans le dossier du client pour justification.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 mt-1">
+                            <span class="text-blue-600 font-bold text-sm">2</span>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800 mb-1">Surveiller l'évolution</p>
+                            <p class="text-gray-600 text-sm">Restez attentif aux changements de situation qui pourraient modifier le statut du client.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 mt-1">
+                            <span class="text-blue-600 font-bold text-sm">3</span>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800 mb-1">Informer le client</p>
+                            <p class="text-gray-600 text-sm">Communiquez cette conclusion au client pour sa gouverne.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="mt-8 pt-6 border-t border-gray-300">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Tool Information -->
+                    <div class="text-center md:text-left">
+                        <h4 class="font-semibold text-gray-800 mb-2">Outil E-Factu</h4>
+                        <p class="text-sm text-gray-600">Attestation générée par l'outil E-Factu</p>
+                        <p class="text-sm text-gray-600">Développé par l'Ordre des experts-comptables Paris Ile-de-France</p>
+                    </div>
+                    
+                    <!-- Cabinet Information -->
+                    <div class="text-center md:text-right" id="cabinet-info">
+                        <!-- Cabinet info will be loaded here -->
+                    </div>
+                </div>
+                
+                <div class="text-center mt-6">
+                    <p class="text-xs text-gray-500">
+                        Ce document est une attestation de non-assujettissement basée sur les informations fournies au moment de l'analyse.
+                        Il ne constitue pas un avis juridique ou fiscal.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        let currentClient = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadClientData();
+        });
+
+        // Load client data
+        function loadClientData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const clientId = urlParams.get('client');
+            
+            if (!clientId) {
+                alert('Aucun client spécifié');
+                window.location.href = 'client-list.html';
+                return;
+            }
+            
+            // Load client from localStorage
+            const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+            currentClient = clients.find(c => c.id === clientId);
+            
+            if (!currentClient) {
+                alert('Client non trouvé');
+                window.location.href = 'client-list.html';
+                return;
+            }
+            
+            // Display client information
+            displayClientInfo();
+        }
+
+        // Display client information
+        function displayClientInfo() {
+            // Generation date
+            document.getElementById('generation-date').textContent = new Date().toLocaleDateString('fr-FR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            // Client name
+            document.getElementById('client-name').textContent = currentClient.name;
+            document.getElementById('client-name-2').textContent = currentClient.name;
+            
+            // Optional fields - only show if they exist
+            if (currentClient.dossierNum) {
+                document.getElementById('dossier-num-container').style.display = 'block';
+                document.getElementById('dossier-num').textContent = currentClient.dossierNum;
+            }
+            
+            if (currentClient.activity) {
+                document.getElementById('activity-container').style.display = 'block';
+                document.getElementById('activity').textContent = currentClient.activity;
+            }
+            
+            if (currentClient.siret) {
+                document.getElementById('siret-container').style.display = 'block';
+                document.getElementById('siret').textContent = currentClient.siret;
+            }
+            
+            // Reason for being out of scope
+            document.getElementById('raison-hors-champ').textContent = currentClient.raisonHorsChamp || 'Client non assujetti à la TVA';
+            
+            // Load cabinet information
+            loadCabinetInfo();
+        }
+
+        // Load cabinet information
+        function loadCabinetInfo() {
+            const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const cabinetInfoDiv = document.getElementById('cabinet-info');
+            
+            if (settings.cabinetName) {
+                let html = '<h4 class="font-semibold text-gray-800 mb-2">Cabinet</h4>';
+                html += `<p class="text-sm text-gray-600">${settings.cabinetName}</p>`;
+                
+                if (settings.cabinetAddress) {
+                    html += `<p class="text-sm text-gray-600">${settings.cabinetAddress}</p>`;
+                }
+                
+                if (settings.cabinetPhone) {
+                    html += `<p class="text-sm text-gray-600">${settings.cabinetPhone}</p>`;
+                }
+                
+                if (settings.cabinetEmail) {
+                    html += `<p class="text-sm text-gray-600">${settings.cabinetEmail}</p>`;
+                }
+                
+                cabinetInfoDiv.innerHTML = html;
+            }
+        }
+
+        // Generate report for hors champ client
+        function generateReport() {
+            if (!currentClient) {
+                alert('Erreur : client non chargé');
+                return;
+            }
+            
+            // Redirect to report selection page with client ID
+            window.location.href = `report-selection.html?client=${encodeURIComponent(currentClient.id)}`;
+        }
+    </script>
+</body>
+</html>
+

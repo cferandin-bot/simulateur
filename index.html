@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Factu - Audit de Conformité</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Main Container -->
+    <div id="app" class="min-h-screen">
+        <!-- Start Screen -->
+        <div id="start-screen" class="fade-in">
+            <!-- Hero Section -->
+            <div class="bg-white text-gray-800">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
+                    <div class="text-center">
+                        <div class="mb-6 flex justify-center">
+                            <img src="e-Factu.png" alt="E-Factu" class="h-48 md:h-64 w-auto bg-white rounded-lg px-8 py-4 shadow-2xl">
+                        </div>
+                        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                            Naviguez sereinement dans la réforme de la facture électronique grâce à la solution développée par l'Ordre des experts-comptables Paris Ile-de-France
+                            <div class="mt-4 mb-0 flex justify-center">
+                            <img src="oec.png" alt="Ordre des Experts-Comptables" class="h-16 md:h-20 w-auto">
+                        	</div>
+                        </p>
+                        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                            <strong>Version 2 du 01/12/2025 avec les 42 cas d'usage de la facturation électronique</strong> (<a href="./Xp_z12-014_cas_usage_annexe_a_v1.2.pdf" target="_blank"><font color="#0066CC"><u>Norme AFNOR version 1.2 - 31/10/2025</u></font></a>)
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How it Works Section -->
+            <div class="py-12 bg-white relative">
+                <!-- Section separator -->
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-green-600 to-red-700"></div>
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center mb-16">
+                        <div class="inline-block bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-3 rounded-full mb-6">
+                            <h2 class="text-3xl font-bold">Une méthodologie en 3 étapes</h2>
+                        </div>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-3 gap-8">
+                        <div class="text-center card-hover bg-red-50 rounded-xl p-8 relative shadow-2xl border-2 border-red-200 hover:border-red-400 transform hover:scale-105 transition-all duration-300">
+                            <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">1</div>
+                            <div class="mt-6">
+                                <i class="fas fa-search text-4xl text-red-600 mb-6"></i>
+                                <h3 class="text-xl font-bold text-gray-900 mb-4">Identification</h3>
+                                <p class="text-gray-700">
+                                    Questionnaire interactif pour identifier précisément les cas d'usage complexes de votre client
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center card-hover bg-green-50 rounded-xl p-8 relative shadow-2xl border-2 border-green-200 hover:border-green-400 transform hover:scale-105 transition-all duration-300">
+                            <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">2</div>
+                            <div class="mt-6">
+                                <i class="fas fa-magic text-4xl text-green-600 mb-6"></i>
+                                <h3 class="text-xl font-bold text-gray-900 mb-4">Assistant intelligent</h3>
+                                <p class="text-gray-700">
+                                    Analyse détaillée des risques et planification des actions de conformité
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center card-hover bg-purple-50 rounded-xl p-8 relative shadow-2xl border-2 border-purple-200 hover:border-purple-400 transform hover:scale-105 transition-all duration-300">
+                            <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">3</div>
+                            <div class="mt-6">
+                                <i class="fas fa-file-alt text-4xl text-purple-600 mb-6"></i>
+                                <h3 class="text-xl font-bold text-gray-900 mb-4">Rapport professionnel</h3>
+                                <p class="text-gray-700">
+                                    Génération automatique de rapports d'audit personnalisés selon les risques identifiés
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Section -->
+            <div class="bg-gradient-to-r from-red-600 to-red-700 py-16">
+                                                  <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+                      <h2 class="text-4xl font-bold text-white mb-6">Prêt à commencer ?</h2>
+                      <p class="text-xl text-red-100 mb-12">Créez votre premier dossier ou consultez vos clients existants</p>
+                      <div class="grid md:grid-cols-2 gap-6">
+                        <button onclick="window.location.href='new-dossier.html'" class="group bg-white text-red-600 text-xl font-bold py-6 px-8 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+                            <i class="fas fa-plus mr-3 group-hover:rotate-90 transition-transform duration-300"></i>
+                            Nouveau dossier
+                        </button>
+                        <button onclick="window.location.href='client-list.html'" class="group bg-red-800 text-white text-xl font-bold py-6 px-8 rounded-xl shadow-lg hover:shadow-2xl hover:bg-red-700 transform hover:scale-105 transition-all duration-300">
+                            <i class="fas fa-folder-open mr-3 group-hover:bounce"></i>
+                            Mes dossiers clients
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+                         <!-- Secondary Actions -->
+             <div class="bg-gradient-to-br from-gray-50 to-blue-50 py-20 relative">
+                 <!-- Section separator -->
+                 <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600"></div>
+                 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                     <div class="text-center mb-12">
+                         <div class="inline-block bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-full mb-6">
+                             <h3 class="text-3xl font-bold">Autres actions</h3>
+                         </div>
+                     </div>
+                     <div class="grid md:grid-cols-3 gap-8">
+                         <button onclick="window.location.href='settings.html'" class="text-center p-8 rounded-2xl border-2 border-purple-200 hover:border-purple-400 hover:shadow-2xl transition-all duration-300 bg-white transform hover:scale-105">
+                             <i class="fas fa-cog text-4xl text-purple-600 mb-6"></i>
+                             <h4 class="font-bold text-gray-800 text-xl mb-3">Paramètres</h4>
+                             <p class="text-gray-600">Configuration du cabinet et personnalisation</p>
+                         </button>
+                         <button onclick="window.location.href='help.html'" class="text-center p-8 rounded-2xl border-2 border-pink-200 hover:border-pink-400 hover:shadow-2xl transition-all duration-300 bg-white transform hover:scale-105">
+                             <i class="fas fa-question-circle text-4xl text-pink-600 mb-6"></i>
+                             <h4 class="font-bold text-gray-800 text-xl mb-3">Aide</h4>
+                             <p class="text-gray-600">Guide d'utilisation et support</p>
+                         </button>
+                         <button onclick="window.location.href='dashboard.html'" class="text-center p-8 rounded-2xl border-2 border-orange-200 hover:border-orange-400 hover:shadow-2xl transition-all duration-300 bg-white transform hover:scale-105">
+                             <i class="fas fa-chart-bar text-4xl text-orange-600 mb-6"></i>
+                             <h4 class="font-bold text-gray-800 text-xl mb-3">Tableau de bord</h4>
+                             <p class="text-gray-600">Statistiques et indicateurs de performance</p>
+                         </button>
+                     </div>
+                 </div>
+             </div>
+
+                         <!-- Security Section -->
+             <div class="bg-gradient-to-br from-green-50 to-emerald-50 py-20 relative">
+                 <!-- Section separator -->
+                 <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600"></div>
+                 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                     <div class="mb-16">
+                         <div class="inline-block bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-3 rounded-full mb-6">
+                             <h3 class="text-3xl font-bold">Sécurité et confidentialité</h3>
+                         </div>
+                         <p class="text-lg text-gray-600 max-w-2xl mx-auto">Votre confiance est notre priorité - Vos données sont protégées</p>
+                     </div>
+                     <div class="grid md:grid-cols-3 gap-8">
+                         <div class="flex flex-col items-center p-8 bg-white rounded-2xl shadow-lg border-2 border-green-200 hover:border-green-400 transition-all duration-300 transform hover:scale-105">
+                             <div class="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
+                                 <i class="fas fa-shield-alt text-3xl text-white"></i>
+                             </div>
+                             <h4 class="font-bold text-gray-800 text-xl mb-3">100% Local</h4>
+                             <p class="text-gray-600">Vos données restent sur votre machine, aucune transmission externe</p>
+                         </div>
+                         <div class="flex flex-col items-center p-8 bg-white rounded-2xl shadow-lg border-2 border-emerald-200 hover:border-emerald-400 transition-all duration-300 transform hover:scale-105">
+                             <div class="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
+                                 <i class="fas fa-user-shield text-3xl text-white"></i>
+                             </div>
+                             <h4 class="font-bold text-gray-800 text-xl mb-3">Contrôle total</h4>
+                             <p class="text-gray-600">Vous maîtrisez complètement vos informations et leur utilisation</p>
+                         </div>
+                         <div class="flex flex-col items-center p-8 bg-white rounded-2xl shadow-lg border-2 border-teal-200 hover:border-teal-400 transition-all duration-300 transform hover:scale-105">
+                             <div class="w-20 h-20 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
+                                 <i class="fas fa-download text-3xl text-white"></i>
+                             </div>
+                             <h4 class="font-bold text-gray-800 text-xl mb-3">Export simple</h4>
+                             <p class="text-gray-600">Sauvegarde et partage faciles de vos données au sein du cabinet</p>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+
+                <!-- Footer -->
+                <footer class="bg-gray-800 text-white py-8">
+                    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                        <p class="text-gray-300 mb-4">
+                            Réalisé avec ❤️ pour les experts-comptables !
+                        </p>
+                        <div class="flex justify-center space-x-8 text-sm mb-6">
+                            <div class="flex items-center">
+                                <i class="fas fa-building mr-2 text-blue-400"></i>
+                                <span>Ordre des experts-comptables Paris Ile-de-France - © 2025 Tous droits réservés</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-center">
+                            <div class="bg-white rounded-lg px-6 py-3 shadow-lg">
+                                <img src="oec.png" alt="Ordre des Experts-Comptables" class="h-10 w-auto">
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+           </div>
+    </div>
+
+    <style>
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+    </style>
+</body>
+</html>

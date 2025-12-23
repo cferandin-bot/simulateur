@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aide - E-Factu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .bg-pattern {
+            background-image: radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.05) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+        
+        .btn-modern {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .help-section {
+            transition: all 0.3s ease;
+        }
+        
+        .help-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-pattern min-h-screen">
+    <div class="container mx-auto px-4 py-8 fade-in-up">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-question-circle text-pink-600 mr-3"></i>
+                Aide et informations
+            </h1>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                Guide d'utilisation et support pour l'application de conformité facture électronique
+            </p>
+        </div>
+
+        <!-- Help Content -->
+        <div class="max-w-4xl mx-auto space-y-8">
+            <!-- What is it -->
+            <div class="help-section bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-info-circle text-blue-600 mr-3"></i>
+                    Qu'est-ce que la facture électronique ?
+                </h2>
+                <p class="text-gray-700 leading-relaxed">
+                    Cet outil vous aide à évaluer la conformité de vos clients (ou de votre cabinet) à la future réforme de la facture électronique en France. Il identifie les cas d'usage spécifiques qui nécessitent une attention particulière.
+                </p>
+            </div>
+
+            <!-- How to use -->
+            <div class="help-section bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-play-circle text-green-600 mr-3"></i>
+                    Comment utiliser l'application ?
+                </h2>
+                <div class="space-y-4">
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span class="text-blue-600 font-bold text-sm">1</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800 mb-2">Démarrer une nouvelle analyse</h3>
+                            <p class="text-gray-700">Créez un nouveau dossier client en renseignant les informations de base.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <span class="text-green-600 font-bold text-sm">2</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800 mb-2">Sélectionner le type d'analyse</h3>
+                            <p class="text-gray-700">Choisissez entre l'analyse des flux de vente ou d'achat selon vos besoins.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                            <span class="text-purple-600 font-bold text-sm">3</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800 mb-2">Questionnaires</h3>
+                            <p class="text-gray-700">Répondez aux questions par "Oui", "Non" ou "Je ne sais pas". Chaque "Oui" peut identifier un cas d'usage spécifique.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                            <span class="text-orange-600 font-bold text-sm">4</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800 mb-2">Dossier de Travail</h3>
+                            <p class="text-gray-700">Pour chaque cas d'usage identifié, ajoutez vos notes, définissez la criticité du risque, et suivez les actions de la checklist.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                            <span class="text-red-600 font-bold text-sm">5</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800 mb-2">Générer les rapports</h3>
+                            <p class="text-gray-700">Créez un rapport interne détaillé (pour le cabinet) ou un rapport simplifié (pour le client).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk levels -->
+            <div class="help-section bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 mr-3"></i>
+                    Comprendre la criticité des risques
+                </h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="text-center p-6 bg-green-50 rounded-xl border border-green-200">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                        </div>
+                        <h3 class="font-semibold text-green-800 mb-2">Faible</h3>
+                        <p class="text-green-700 text-sm">Risque mineur, facilement gérable avec des ajustements mineurs.</p>
+                    </div>
+                    
+                    <div class="text-center p-6 bg-yellow-50 rounded-xl border border-yellow-200">
+                        <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl"></i>
+                        </div>
+                        <h3 class="font-semibold text-yellow-800 mb-2">Moyenne</h3>
+                        <p class="text-yellow-700 text-sm">Risque nécessitant une attention et des procédures spécifiques.</p>
+                    </div>
+                    
+                    <div class="text-center p-6 bg-red-50 rounded-xl border border-red-200">
+                        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-times-circle text-red-600 text-2xl"></i>
+                        </div>
+                        <h3 class="font-semibold text-red-800 mb-2">Élevée</h3>
+                        <p class="text-red-700 text-sm">Risque majeur (légal, fiscal, opérationnel) nécessitant une action immédiate.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backup and sharing -->
+            <div class="help-section bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-cloud-upload-alt text-indigo-600 mr-3"></i>
+                    Sauvegarde et Partage des Dossiers
+                </h2>
+                <p class="text-gray-700 leading-relaxed mb-4">
+                    Vos dossiers sont sauvegardés automatiquement dans le navigateur. Utilisez la fonction "Exporter" sur la page "Mes Dossiers Clients" pour créer une sauvegarde JSON que vous pouvez stocker ou partager. La fonction "Importer" permet de restaurer ces dossiers.
+                </p>
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p class="text-blue-800 text-sm">
+                        <i class="fas fa-lightbulb mr-2"></i>
+                        <strong>Conseil :</strong> Exportez régulièrement vos dossiers pour éviter toute perte de données en cas de problème avec le navigateur.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Norme AFNOR -->
+            <div class="help-section bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-book text-indigo-600 mr-3"></i>
+                    Référence normative
+                </h2>
+                <p class="text-gray-700 leading-relaxed mb-4">
+                    Cette application est basée sur la norme AFNOR XP Z12-014 qui définit les cas d'usage B2B applicables dans le cadre de la réforme de la facture électronique en France.
+                </p>
+                <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                    <p class="text-indigo-800 text-sm mb-3">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>Norme de référence :</strong> XP Z12-014 - Cas d'usage B2B applicables dans le cadre de la réforme de la facture électronique en France
+                    </p>
+                    <a href="https://www.boutique.afnor.org/fr-fr/norme/xp-z12014/cas-dusage-b2b-applicables-dans-le-cadre-la-reforme-facture-electronique-en/fa213345/448044" 
+                       target="_blank" 
+                       class="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
+                        <i class="fas fa-external-link-alt mr-2"></i>
+                        Consulter la norme AFNOR
+                    </a>
+                </div>
+            </div>
+
+            <!-- Contact -->
+            <div class="help-section bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-envelope text-pink-600 mr-3"></i>
+                    Support et Contact
+                </h2>
+                <p class="text-gray-700 leading-relaxed mb-4">
+                    Pour toute question ou problème technique, n'hésitez pas à nous contacter.
+                </p>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-building text-blue-600"></i>
+                        <span class="text-gray-700">Ordre des experts-comptables Paris Ile-de-France</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="text-center mt-12">
+            <button onclick="window.location.href='index.html'" class="btn-modern bg-gray-600 text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:bg-gray-700 transition-colors">
+                <i class="fas fa-home mr-2"></i> Retour à l'accueil
+            </button>
+        </div>
+    </div>
+</body>
+</html> 

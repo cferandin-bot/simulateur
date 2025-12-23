@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paramètres - E-Factu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .bg-pattern {
+            background-image: radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.05) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+        
+        .btn-modern {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .form-input {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .form-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-pattern min-h-screen">
+    <div class="container mx-auto px-4 py-8 fade-in-up">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-cog text-purple-600 mr-3"></i>
+                Paramètres du Cabinet
+            </h1>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                Configurez les informations de votre cabinet qui apparaîtront dans les rapports générés
+            </p>
+        </div>
+
+        <!-- Settings Form -->
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                <form id="settings-form" class="space-y-6">
+                    <div>
+                        <label for="cabinet-name" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-building mr-2 text-purple-600"></i>
+                            Nom du cabinet
+                        </label>
+                        <input type="text" id="cabinet-name" class="form-input w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500" 
+                               placeholder="Ex: Cabinet ExpertCompta">
+                    </div>
+
+                    <div>
+                        <label for="cabinet-address" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-map-marker-alt mr-2 text-purple-600"></i>
+                            Adresse
+                        </label>
+                        <input type="text" id="cabinet-address" class="form-input w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500" 
+                               placeholder="Ex: 123 Rue de la Compta, 75001 Paris">
+                    </div>
+
+                    <div>
+                        <label for="cabinet-phone" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-phone mr-2 text-purple-600"></i>
+                            Téléphone
+                        </label>
+                        <input type="tel" id="cabinet-phone" class="form-input w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500" 
+                               placeholder="Ex: +33 1 23 45 67 89">
+                    </div>
+
+                    <div>
+                        <label for="cabinet-email" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-envelope mr-2 text-purple-600"></i>
+                            Email
+                        </label>
+                        <input type="email" id="cabinet-email" class="form-input w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500" 
+                               placeholder="Ex: contact@cabinet.com">
+                    </div>
+
+
+
+                    <div class="pt-6">
+                        <button type="submit" class="btn-modern w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold py-4 px-8 rounded-xl shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all">
+                            <i class="fas fa-save mr-2"></i> Enregistrer les paramètres
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Navigation -->
+            <div class="text-center mt-8">
+                <button onclick="window.location.href='index.html'" class="btn-modern bg-gray-600 text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-home mr-2"></i> Retour à l'accueil
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load settings when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+        });
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const settings = JSON.parse(localStorage.getItem('appSettings')) || {};
+            
+            document.getElementById('cabinet-name').value = settings.cabinetName || '';
+            document.getElementById('cabinet-address').value = settings.cabinetAddress || '';
+            document.getElementById('cabinet-phone').value = settings.cabinetPhone || '';
+            document.getElementById('cabinet-email').value = settings.cabinetEmail || '';
+        }
+
+        // Save settings
+        document.getElementById('settings-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const settings = {
+                cabinetName: document.getElementById('cabinet-name').value,
+                cabinetAddress: document.getElementById('cabinet-address').value,
+                cabinetPhone: document.getElementById('cabinet-phone').value,
+                cabinetEmail: document.getElementById('cabinet-email').value
+            };
+
+            localStorage.setItem('appSettings', JSON.stringify(settings));
+            
+            // Show success message
+            showNotification('Paramètres sauvegardés avec succès !', 'success');
+        });
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg text-white font-medium z-50 transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 

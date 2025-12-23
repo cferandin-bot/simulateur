@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport - E-Factu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; }
+        }
+        
+        /* Report specific styling */
+        #report-content h1 { color: #1e40af; font-size: 1.875rem; font-weight: bold; margin-bottom: 1rem; }
+        #report-content h2 { color: #1e40af; font-size: 1.5rem; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem; }
+        #report-content h3 { color: #374151; font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+        #report-content h4 { color: #4b5563; font-size: 1.125rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.5rem; }
+        #report-content p { margin-bottom: 1rem; line-height: 1.6; }
+        #report-content ul { margin-bottom: 1rem; padding-left: 1.5rem; }
+        #report-content li { margin-bottom: 0.5rem; }
+        #report-content table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+        #report-content th, #report-content td { padding: 0.75rem; border: 1px solid #d1d5db; text-align: left; }
+        #report-content th { background-color: #f3f4f6; font-weight: 600; }
+        #report-content tr:nth-child(even) { background-color: #f9fafb; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Écran du rapport -->
+    <div id="report-screen">
+        <div id="report" class="p-8 md:p-12 bg-white max-w-6xl mx-auto">
+            <div id="report-content">
+                <!-- Le contenu du rapport sera généré ici -->
+                <div class="text-center mb-8">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+                        <p class="text-gray-600">Génération du rapport en cours...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="p-8 bg-gray-100 border-t border-gray-200 flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-4 no-print">
+            <button onclick="exportToPDF()" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-green-700 w-full md:w-auto">
+                <i class="fas fa-file-pdf mr-2"></i> Exporter en PDF
+            </button>
+            <button onclick="exportToWord()" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 w-full md:w-auto">
+                <i class="fas fa-file-word mr-2"></i> Exporter en Word
+            </button>
+            <button onclick="newAnalysis()" class="bg-gray-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-gray-800 w-full md:w-auto">
+                <i class="fas fa-redo mr-2"></i> Nouvelle analyse
+            </button>
+            <button onclick="backToClient()" class="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 w-full md:w-auto">
+                <i class="fas fa-arrow-left mr-2"></i> Retour
+            </button>
+        </div>
+    </div>
+
+    <script>
+        console.log('=== report.html script loaded ===');
+        
+        // Application State
+        let currentClient = null;
+        let reportType = null;
+        let reportOptions = {};
+
+        // Initialize report generation
+        function initializeReport() {
+            console.log('=== initializeReport called ===');
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const clientId = urlParams.get('client');
+            reportType = urlParams.get('type');
+            const optionsStr = urlParams.get('options');
+            
+            console.log('URL params:', { clientId, reportType, optionsStr });
+            
+                                if (!clientId || !reportType) {
+                        console.log('Paramètres manquants - redirection vers client-list.html');
+                        window.location.href = 'client-list.html';
+                        return;
+                    }
+            
+            if (optionsStr) {
+                try {
+                    reportOptions = JSON.parse(optionsStr);
+                } catch (e) {
+                    reportOptions = {};
+                }
+            }
+            
+            // Load client data
+            const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+            currentClient = clients.find(c => c.id === clientId);
+            
+            console.log('Clients loaded:', clients);
+            console.log('Current client:', currentClient);
+            
+                                if (!currentClient) {
+                        console.log('Client non trouvé - redirection vers client-list.html');
+                        window.location.href = 'client-list.html';
+                        return;
+                    }
+            
+            // Generate report
+            setTimeout(() => generateReportContent(), 1000);
+        }
+
+        // Generate obligations summary based on questionnaire answers
+        function generateObligationsSummary(client) {
+            let html = '';
+            
+            // Check if client has questionnaire data
+            if (!client.clientAssujettiTVA) {
+                return ''; // No questionnaire data available
+            }
+            
+            html += `
+                <div class="mb-8">
+                    <h2 style="color: #1e40af; font-size: 1.5rem; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem;">
+                        <i class="fas fa-clipboard-check mr-2"></i>
+                        Récapitulatif des obligations E-INVOICING & E-REPORTING
+                    </h2>
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border-2 border-blue-200">
+            `;
+            
+            // Analyze obligations
+            let eInvoicingObligation = false;
+            let eReportingObligation = false;
+            let eReportingInternational = false;
+            let details = [];
+            
+            // Check TVA status
+            if (client.clientAssujettiTVA === 'no') {
+                html += `
+                    <div class="mb-4 p-4 bg-green-100 border-2 border-green-300 rounded-lg">
+                        <h3 class="font-bold text-green-800 mb-2 flex items-center">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            Client non assujetti à la TVA
+                        </h3>
+                        <p class="text-green-700">
+                            <strong>Aucune obligation</strong> concernant la réforme de la facture électronique.
+                        </p>
+                    </div>
+                `;
+                html += `</div></div>`;
+                return html;
+            }
+            
+            // Check if established in France
+            if (client.clientEtabliFranceSiren === 'no') {
+                html += `
+                    <div class="mb-4 p-4 bg-green-100 border-2 border-green-300 rounded-lg">
+                        <h3 class="font-bold text-green-800 mb-2 flex items-center">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            Client non établi en France
+                        </h3>
+                        <p class="text-green-700">
+                            <strong>Pas d'obligation en France</strong> concernant la réforme de la facture électronique.
+                        </p>
+                    </div>
+                `;
+                html += `</div></div>`;
+                return html;
+            }
+            
+            // Client is subject to VAT and established in France - analyze further
+            
+            // Check emission of invoices in France (Q10)
+            if (client.clientEmetFacturesFrance === 'yes') {
+                // Check types of clients in France (Q11)
+                if (client.clientTypesFrance && Array.isArray(client.clientTypesFrance)) {
+                    if (client.clientTypesFrance.includes('entreprises-tva')) {
+                        eInvoicingObligation = true;
+                        details.push('Émission de factures à des entreprises assujetties TVA en France → E-INVOICING obligatoire');
+                    }
+                    if (client.clientTypesFrance.includes('administrations')) {
+                        eInvoicingObligation = true;
+                        details.push('Émission de factures à des administrations publiques → E-INVOICING obligatoire (Chorus Pro)');
+                    }
+                    if (client.clientTypesFrance.includes('particuliers')) {
+                        eReportingObligation = true;
+                        details.push('Émission de factures à des particuliers → E-REPORTING B2C obligatoire');
+                    }
+                    if (client.clientTypesFrance.includes('associations')) {
+                        eReportingObligation = true;
+                        details.push('Émission de factures à des associations non assujetties → E-REPORTING B2C obligatoire');
+                    }
+                }
+                
+                // Check option TVA débits (Q12bis)
+                if (client.optionTvaDebits === 'no' && client.natureOperations && 
+                    (client.natureOperations.includes('prestations-services') || client.natureOperations.includes('mixte'))) {
+                    eReportingObligation = true;
+                    details.push('Prestations de services sans option TVA sur les débits → E-REPORTING obligatoire');
+                }
+            }
+            
+            // Check clients abroad (Q13)
+            if (client.clientsEtranger && Array.isArray(client.clientsEtranger)) {
+                if (client.clientsEtranger.includes('ue') || client.clientsEtranger.includes('hors-ue')) {
+                    eReportingObligation = true;
+                    eReportingInternational = true;
+                    if (client.clientsEtranger.includes('ue')) {
+                        details.push('Ventes intracommunautaires (UE) → E-REPORTING INTERNATIONAL obligatoire');
+                    }
+                    if (client.clientsEtranger.includes('hors-ue')) {
+                        details.push('Exportations hors UE → E-REPORTING INTERNATIONAL obligatoire');
+                    }
+                }
+            }
+            
+            // Check reception of supplier invoices (Q8)
+            if (client.receptionFacturesFournisseurs === 'yes') {
+                details.push('Réception de factures de fournisseurs français → E-INVOICING obligatoire pour la réception');
+            }
+            
+            // Check acquisitions/imports (Q9)
+            if (client.acquisitionsImportations && Array.isArray(client.acquisitionsImportations)) {
+                if (client.acquisitionsImportations.includes('acquisitions-intracommunautaires')) {
+                    eReportingObligation = true;
+                    eReportingInternational = true;
+                    details.push('Acquisitions intracommunautaires → E-REPORTING INTERNATIONAL obligatoire');
+                }
+                if (client.acquisitionsImportations.includes('importations-autoliquidation')) {
+                    eReportingObligation = true;
+                    eReportingInternational = true;
+                    details.push('Importations avec autoliquidation de TVA → E-REPORTING INTERNATIONAL obligatoire');
+                }
+            }
+            
+            // Display obligations summary
+            html += `
+                <div class="grid md:grid-cols-3 gap-4 mb-6">
+                    <!-- E-INVOICING -->
+                    <div class="p-4 ${eInvoicingObligation ? 'bg-red-100 border-red-300' : 'bg-green-100 border-green-300'} border-2 rounded-lg text-center">
+                        <div class="text-3xl mb-2">
+                            ${eInvoicingObligation ? '<i class="fas fa-exclamation-triangle text-red-600"></i>' : '<i class="fas fa-check-circle text-green-600"></i>'}
+                        </div>
+                        <h4 class="font-bold ${eInvoicingObligation ? 'text-red-800' : 'text-green-800'} mb-2">
+                            E-INVOICING
+                        </h4>
+                        <p class="text-sm font-semibold ${eInvoicingObligation ? 'text-red-700' : 'text-green-700'}">
+                            ${eInvoicingObligation ? 'OBLIGATOIRE' : 'Non obligatoire'}
+                        </p>
+                    </div>
+                    
+                    <!-- E-REPORTING -->
+                    <div class="p-4 ${eReportingObligation ? 'bg-red-100 border-red-300' : 'bg-green-100 border-green-300'} border-2 rounded-lg text-center">
+                        <div class="text-3xl mb-2">
+                            ${eReportingObligation ? '<i class="fas fa-exclamation-triangle text-red-600"></i>' : '<i class="fas fa-check-circle text-green-600"></i>'}
+                        </div>
+                        <h4 class="font-bold ${eReportingObligation ? 'text-red-800' : 'text-green-800'} mb-2">
+                            E-REPORTING
+                        </h4>
+                        <p class="text-sm font-semibold ${eReportingObligation ? 'text-red-700' : 'text-green-700'}">
+                            ${eReportingObligation ? 'OBLIGATOIRE' : 'Non obligatoire'}
+                        </p>
+                    </div>
+                    
+                    <!-- E-REPORTING INTERNATIONAL -->
+                    <div class="p-4 ${eReportingInternational ? 'bg-red-100 border-red-300' : 'bg-green-100 border-green-300'} border-2 rounded-lg text-center">
+                        <div class="text-3xl mb-2">
+                            ${eReportingInternational ? '<i class="fas fa-exclamation-triangle text-red-600"></i>' : '<i class="fas fa-check-circle text-green-600"></i>'}
+                        </div>
+                        <h4 class="font-bold ${eReportingInternational ? 'text-red-800' : 'text-green-800'} mb-2">
+                            E-REPORTING INTERNATIONAL
+                        </h4>
+                        <p class="text-sm font-semibold ${eReportingInternational ? 'text-red-700' : 'text-green-700'}">
+                            ${eReportingInternational ? 'OBLIGATOIRE' : 'Non obligatoire'}
+                        </p>
+                    </div>
+                </div>
+            `;
+            
+            // Display details if any obligations
+            if (details.length > 0) {
+                html += `
+                    <div class="bg-white p-4 rounded-lg border border-blue-300">
+                        <h4 class="font-bold text-blue-900 mb-3 flex items-center">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Détails des obligations identifiées :
+                        </h4>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700">
+                `;
+                
+                details.forEach(detail => {
+                    html += `<li>${detail}</li>`;
+                });
+                
+                html += `
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            html += `
+                    </div>
+                </div>
+            `;
+            
+            return html;
+        }
+
+        // Generate report content
+        function generateReportContent() {
+            console.log('=== generateReportContent called ===');
+            const reportContent = document.getElementById('report-content');
+            
+            // Load cabinet settings
+            const cabinetSettings = JSON.parse(localStorage.getItem('appSettings')) || {};
+            
+            let html = '';
+            
+            // Header with cabinet information
+            html += `
+                <div class="mb-8 border-b border-gray-300 pb-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Cabinet Information -->
+                        <div class="lg:col-span-1">
+                            <div class="bg-gradient-to-br from-purple-50 to-indigo-50 p-4 rounded-lg border border-purple-200">
+                                <h3 class="font-bold text-purple-800 mb-3 flex items-center">
+                                    <i class="fas fa-building mr-2"></i>
+                                    Cabinet d'Expertise Comptable
+                                </h3>
+                                ${cabinetSettings.cabinetName ? `<p class="font-semibold text-purple-700 mb-2">${cabinetSettings.cabinetName}</p>` : ''}
+                                ${cabinetSettings.cabinetAddress ? `<p class="text-sm text-gray-600 mb-1"><i class="fas fa-map-marker-alt mr-1"></i>${cabinetSettings.cabinetAddress}</p>` : ''}
+                                ${cabinetSettings.cabinetPhone ? `<p class="text-sm text-gray-600 mb-1"><i class="fas fa-phone mr-1"></i>${cabinetSettings.cabinetPhone}</p>` : ''}
+                                ${cabinetSettings.cabinetEmail ? `<p class="text-sm text-gray-600 mb-1"><i class="fas fa-envelope mr-1"></i>${cabinetSettings.cabinetEmail}</p>` : ''}
+                            </div>
+                        </div>
+                        
+                        <!-- Report Title and Client Info -->
+                        <div class="lg:col-span-2 text-center lg:text-left">
+                            <h1 class="text-3xl font-bold text-blue-800 mb-2">
+                                ${reportType === 'interne' ? 'Rapport Interne - Dossier de Travail' : 'Rapport Client - Audit E-Factu'}
+                            </h1>
+                            <div class="text-gray-600">
+                                <p class="text-lg font-semibold">${currentClient.name}</p>
+                                <p class="text-sm">Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Client information
+            html += `
+                <div class="mb-8">
+                    <h2>Informations du client</h2>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <table class="w-full">
+                            <tr><td class="font-semibold">Nom du client :</td><td>${currentClient.name}</td></tr>
+                            ${currentClient.dossierNum ? `<tr><td class="font-semibold">N° de dossier :</td><td>${currentClient.dossierNum}</td></tr>` : ''}
+                            ${currentClient.email ? `<tr><td class="font-semibold">Email :</td><td>${currentClient.email}</td></tr>` : ''}
+                            ${currentClient.activity ? `<tr><td class="font-semibold">Activité :</td><td>${currentClient.activity}</td></tr>` : ''}
+                            ${currentClient.sector ? `<tr><td class="font-semibold">Secteur :</td><td>${currentClient.sector}</td></tr>` : ''}
+                            ${currentClient.siret ? `<tr><td class="font-semibold">N° SIRET/SIREN :</td><td>${currentClient.siret}</td></tr>` : ''}
+                            ${currentClient.notes ? `<tr><td class="font-semibold">Notes :</td><td style="white-space: pre-wrap;">${currentClient.notes}</td></tr>` : ''}
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            // Obligations summary section
+            html += generateObligationsSummary(currentClient);
+            
+            // Analysis summary
+            if (currentClient.analyses) {
+                html += `<h2>Résumé des analyses  réalisées</h2>`;
+                
+                Object.keys(currentClient.analyses).forEach(analysisType => {
+                    const analysis = currentClient.analyses[analysisType];
+                    html += `
+                        <div class="mb-6">
+                            <h3>Analyse des flux ${analysisType}</h3>
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <p><strong>Date :</strong> ${new Date(analysis.date).toLocaleDateString('fr-FR')}</p>
+                                <p><strong>Questions traitées :</strong> ${analysis.answers ? Object.keys(analysis.answers).length : 0}</p>
+                                <p><strong>Cas identifiés :</strong> ${analysis.identifiedCases ? analysis.identifiedCases.length : 0}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Wizard answers section
+            if (currentClient.analyses) {
+                html += `<h2>Réponses détaillées aux questions du questionnaire</h2>`;
+                
+                Object.keys(currentClient.analyses).forEach(analysisType => {
+                    const analysis = currentClient.analyses[analysisType];
+                    if (analysis.answers && questions[analysisType]) {
+                        html += `
+                            <div class="mb-8">
+                                <h3>Questionnaire ${analysisType === 'vente' ? 'des flux de vente' : 'des flux d\'achat'}</h3>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <table class="w-full">
+                                        <thead>
+                                            <tr>
+                                                <th class="text-left p-2 border-b border-gray-300">Question</th>
+                                                <th class="text-left p-2 border-b border-gray-300">Réponse</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                        `;
+                        
+                        questions[analysisType].forEach((question, index) => {
+                            const answer = analysis.answers[index];
+                            const conditionalAnswer = analysis.answers[`conditional_${index}`];
+                            
+                            if (answer !== undefined) {
+                                const answerText = answer === 'yes' ? 'Oui' : answer === 'no' ? 'Non' : answer === 'unknown' ? 'Je ne sais pas' : answer;
+                                
+                                html += `
+                                    <tr>
+                                        <td class="p-2 border-b border-gray-200">${question.q}</td>
+                                        <td class="p-2 border-b border-gray-200">
+                                            <span class="font-semibold ${answer === 'yes' ? 'text-green-600' : answer === 'no' ? 'text-red-600' : 'text-gray-600'}">${answerText}</span>
+                                            ${conditionalAnswer ? `<br><span class="text-sm text-gray-500">Détail : ${conditionalAnswer}</span>` : ''}
+                                        </td>
+                                    </tr>
+                                `;
+                            }
+                        });
+                        
+                        html += `
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+            }
+
+            // New dossier questions section
+            html += `<h2>Réponses aux questions de création de dossier</h2>`;
+            html += `
+                <div class="mb-8">
+                    <h3>Questions d'éligibilité et de configuration</h3>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <table class="w-full">
+                            <thead>
+                                <tr>
+                                    <th class="text-left p-2 border-b border-gray-300">Question</th>
+                                    <th class="text-left p-2 border-b border-gray-300">Réponse</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            // Q5: Client assujetti à la TVA
+            if (currentClient.clientAssujettiTVA !== undefined) {
+                html += `
+                    <tr>
+                        <td class="p-2 border-b border-gray-200"><strong>Q5:</strong> Le client est-il assujetti à la TVA ?</td>
+                        <td class="p-2 border-b border-gray-200">
+                            <span class="font-semibold ${currentClient.clientAssujettiTVA === 'yes' ? 'text-green-600' : 'text-red-600'}">
+                                ${currentClient.clientAssujettiTVA === 'yes' ? 'Oui' : 'Non'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Q6: Client établi en France
+            if (currentClient.clientEtabliFranceSiren !== undefined) {
+                html += `
+                    <tr>
+                        <td class="p-2 border-b border-gray-200"><strong>Q6:</strong> Le client est-il établi en France (avec SIREN français) ?</td>
+                        <td class="p-2 border-b border-gray-200">
+                            <span class="font-semibold ${currentClient.clientEtabliFranceSiren === 'yes' ? 'text-green-600' : 'text-red-600'}">
+                                ${currentClient.clientEtabliFranceSiren === 'yes' ? 'Oui' : 'Non'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Q7: Statut TVA du client
+            if (currentClient.statutTvaClient !== undefined) {
+                let statutLabel = '';
+                switch(currentClient.statutTvaClient) {
+                    case 'redevable-total': statutLabel = 'Redevable total'; break;
+                    case 'redevable-partiel': statutLabel = 'Redevable partiel'; break;
+                    case 'non-redevable': statutLabel = 'Non redevable'; break;
+                    case 'franchise-base': statutLabel = 'Franchise en base'; break;
+                    default: statutLabel = currentClient.statutTvaClient;
+                }
+                html += `
+                    <tr>
+                        <td class="p-2 border-b border-gray-200"><strong>Q7:</strong> Statut TVA du client</td>
+                        <td class="p-2 border-b border-gray-200">
+                            <span class="font-semibold text-blue-600">${statutLabel}</span>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Q8: Réception de factures fournisseurs
+            if (currentClient.receptionFacturesFournisseurs !== undefined) {
+                html += `
+                    <tr>
+                        <td class="p-2 border-b border-gray-200"><strong>Q8:</strong> Le client reçoit-il des factures de fournisseurs français ?</td>
+                        <td class="p-2 border-b border-gray-200">
+                            <span class="font-semibold ${currentClient.receptionFacturesFournisseurs === 'yes' ? 'text-green-600' : 'text-red-600'}">
+                                ${currentClient.receptionFacturesFournisseurs === 'yes' ? 'Oui' : 'Non'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Q9: Acquisitions UE ou importations
+            if (currentClient.acquisitionsImportations && Array.isArray(currentClient.acquisitionsImportations)) {
+                const acqLabels = [];
+                if (currentClient.acquisitionsImportations.includes('acquisitions-intracommunautaires')) {
+                    acqLabels.push('Acquisitions intracommunautaires');
+                }
+                if (currentClient.acquisitionsImportations.includes('importations-autoliquidation')) {
+                    acqLabels.push('Importations avec autoliquidation');
+                }
+                if (currentClient.acquisitionsImportations.includes('non')) {
+                    acqLabels.push('Non');
+                }
+                
+                if (acqLabels.length > 0) {
+                    html += `
+                        <tr>
+                            <td class="p-2 border-b border-gray-200"><strong>Q9:</strong> Acquisitions UE ou importations ?</td>
+                            <td class="p-2 border-b border-gray-200">
+                                <span class="font-semibold text-blue-600">${acqLabels.join(', ')}</span>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+            
+            // Q10: Émission de factures en France
+            if (currentClient.clientEmetFacturesFrance !== undefined) {
+                html += `
+                    <tr>
+                        <td class="p-2 border-b border-gray-200"><strong>Q10:</strong> Le client émet-il des factures en France ?</td>
+                        <td class="p-2 border-b border-gray-200">
+                            <span class="font-semibold ${currentClient.clientEmetFacturesFrance === 'yes' ? 'text-green-600' : 'text-red-600'}">
+                                ${currentClient.clientEmetFacturesFrance === 'yes' ? 'Oui' : 'Non'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Q11: Types de clients en France
+            if (currentClient.clientTypesFrance && Array.isArray(currentClient.clientTypesFrance) && currentClient.clientTypesFrance.length > 0) {
+                const clientTypes = [];
+                if (currentClient.clientTypesFrance.includes('entreprises-tva')) {
+                    clientTypes.push('Entreprises assujetties TVA');
+                }
+                if (currentClient.clientTypesFrance.includes('administrations')) {
+                    clientTypes.push('Administrations publiques');
+                }
+                if (currentClient.clientTypesFrance.includes('particuliers')) {
+                    clientTypes.push('Particuliers');
+                }
+                if (currentClient.clientTypesFrance.includes('associations')) {
+                    clientTypes.push('Associations non assujetties');
+                }
+                
+                if (clientTypes.length > 0) {
+                    html += `
+                        <tr>
+                            <td class="p-2 border-b border-gray-200"><strong>Q11:</strong> Types de clients en France</td>
+                            <td class="p-2 border-b border-gray-200">
+                                <span class="font-semibold text-blue-600">${clientTypes.join(', ')}</span>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+            
+            // Q12: Nature des opérations
+            if (currentClient.natureOperations && Array.isArray(currentClient.natureOperations) && currentClient.natureOperations.length > 0) {
+                const natureLabels = [];
+                if (currentClient.natureOperations.includes('vente-biens')) {
+                    natureLabels.push('Vente de biens');
+                }
+                if (currentClient.natureOperations.includes('prestations-services')) {
+                    natureLabels.push('Prestations de services');
+                }
+                if (currentClient.natureOperations.includes('mixte')) {
+                    natureLabels.push('Mixte');
+                }
+                
+                if (natureLabels.length > 0) {
+                    html += `
+                        <tr>
+                            <td class="p-2 border-b border-gray-200"><strong>Q12:</strong> Nature des opérations</td>
+                            <td class="p-2 border-b border-gray-200">
+                                <span class="font-semibold text-blue-600">${natureLabels.join(', ')}</span>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+            
+            // Q12bis: Option TVA sur les débits
+            if (currentClient.optionTvaDebits !== undefined && currentClient.optionTvaDebits !== '') {
+                html += `
+                    <tr>
+                        <td class="p-2 border-b border-gray-200"><strong>Q12bis:</strong> Option TVA sur les débits (prestations de services) ?</td>
+                        <td class="p-2 border-b border-gray-200">
+                            <span class="font-semibold ${currentClient.optionTvaDebits === 'yes' ? 'text-green-600' : 'text-red-600'}">
+                                ${currentClient.optionTvaDebits === 'yes' ? 'Oui' : 'Non'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Q13: Clients à l'étranger
+            if (currentClient.clientsEtranger && Array.isArray(currentClient.clientsEtranger) && currentClient.clientsEtranger.length > 0) {
+                const etrangerLabels = [];
+                if (currentClient.clientsEtranger.includes('ue')) {
+                    etrangerLabels.push('Union Européenne');
+                }
+                if (currentClient.clientsEtranger.includes('hors-ue')) {
+                    etrangerLabels.push('Hors UE');
+                }
+                if (currentClient.clientsEtranger.includes('non')) {
+                    etrangerLabels.push('Non');
+                }
+                
+                if (etrangerLabels.length > 0) {
+                    html += `
+                        <tr>
+                            <td class="p-2 border-b border-gray-200"><strong>Q13:</strong> Clients à l'étranger ?</td>
+                            <td class="p-2 border-b border-gray-200">
+                                <span class="font-semibold text-blue-600">${etrangerLabels.join(', ')}</span>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            // Identified cases (different format for internal vs client report)
+            console.log('=== About to check reportType ===');
+            console.log('reportType:', reportType);
+            if (reportType === 'interne') {
+                console.log('=== Calling generateIdentifiedCases ===');
+                html += generateIdentifiedCases();
+            } else {
+                console.log('=== Calling generateClientSummary ===');
+                html += generateClientSummary();
+            }
+            
+            // Notes (if included)
+            if (reportOptions.includeNotes) {
+                html += generateNotesSection();
+            }
+            
+            // Recommendations (only for clients subject to VAT)
+            if (currentClient.clientAssujettiTVA !== 'no') {
+                html += `
+                    <div class="mb-8">
+                        <h2>Recommandations</h2>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <ul class="list-disc pl-6">
+                                <li>Mettre en place un processus de validation des factures électroniques</li>
+                                <li>Former les équipes aux nouvelles obligations</li>
+                                <li>Vérifier la compatibilité des logiciels existants</li>
+                                <li>Anticiper les délais de mise en conformité</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Footer with cabinet information
+            html += `
+                <div class="mt-8 pt-6 border-t border-gray-300">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Tool Information -->
+                        <div class="text-center md:text-left">
+                            <h4 class="font-semibold text-gray-800 mb-2">Outil Facture Électronique</h4>
+                            <p class="text-sm text-gray-600">Rapport généré par l'outil E-Factu</p>
+                            <p class="text-sm text-gray-600">Développé par l'Ordre des experts-comptables Paris Ile-de-France</p>
+                        </div>
+                        
+                        <!-- Cabinet Contact -->
+                        <div class="text-center md:text-right">
+                            <h4 class="font-semibold text-gray-800 mb-2">Contact</h4>
+                            ${cabinetSettings.cabinetName ? `<p class="text-sm text-gray-600 font-medium">${cabinetSettings.cabinetName}</p>` : '<p class="text-sm text-gray-600">Cabinet d\'Expertise Comptable</p>'}
+                            ${cabinetSettings.cabinetAddress ? `<p class="text-sm text-gray-600">${cabinetSettings.cabinetAddress}</p>` : ''}
+                            ${cabinetSettings.cabinetPhone ? `<p class="text-sm text-gray-600">${cabinetSettings.cabinetPhone}</p>` : ''}
+                            ${cabinetSettings.cabinetEmail ? `<p class="text-sm text-gray-600">${cabinetSettings.cabinetEmail}</p>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            console.log('=== Final HTML before setting to DOM ===');
+            console.log('HTML length:', html.length);
+            console.log('HTML contains "Cas d\'usage identifiés":', html.includes('Cas d\'usage identifiés'));
+            console.log('HTML contains "Cas n°2":', html.includes('Cas n°2'));
+            console.log('Final HTML preview (last 2000 chars):', html.substring(Math.max(0, html.length - 2000)));
+            
+            reportContent.innerHTML = html;
+        }
+
+        // Database of use cases from Florian.html
+        const useCases = {
+            '1': { title: "Cas n°1 : Multi-commande / Multi-livraison", summary: "La facture regroupe plusieurs commandes ou plusieurs livraisons distinctes.", risk: "Complexité de rapprochement", impact: "Lettrage comptable, suivi des livraisons", action: "Valider la capacité du logiciel de facturation à gérer le format étendu (EXTENDED-CTC-FR).", checklist: ["Le logiciel de facturation gère-t-il le profil EXTENDED-CTC-FR ?", "Le rapprochement avec les bons de commande/livraison est-il automatisé ?"], defaultCriticality: 'medium' },
+            '2': { title: "Cas n°2 : Facture déjà payée", summary: "La facture est émise alors que le paiement a déjà été effectué.", risk: "Double comptabilisation du paiement", impact: "Trésorerie, lettrage, déclaration de TVA (si due à l'encaissement)", action: "S'assurer que le statut 'Encaissée' est transmis immédiatement.", checklist: ["Le processus de facturation identifie-t-il bien les ventes déjà réglées ?", "Le statut 'Encaissée' est-il envoyé automatiquement pour ces factures ?"], defaultCriticality: 'medium' },
+            '3': { title: "Cas n°3 : Facture à payer par un tiers PAYEUR connu au moment de la facturation", summary: "Des factures sont émises à un client mais doivent être payées par un tiers identifié (assurance, mutuelle, organisme public, etc.).", risk: "Erreur de paiement, rejet de la facture par le tiers, retard de paiement", impact: "Trésorerie, lettrage comptable, relation client", action: "S'assurer que les coordonnées et références du tiers payeur sont correctement intégrées dans la facture électronique et que le processus de validation par le tiers est en place.", checklist: ["Les factures mentionnent-elles clairement l'identité du tiers payeur ?"], defaultCriticality: 'high' },
+            '4': { title: "Cas n°4 : Prise en charge partielle par un tiers", summary: "La facture est payée en partie par le client et en partie par un tiers.", risk: "Complexité du suivi des paiements", impact: "Lettrage partiel, trésorerie", action: "Définir un processus clair pour le suivi des deux paiements attendus.", checklist: ["Le logiciel comptable gère-t-il les paiements partiels sur une même facture ?", "Le processus de déclaration des encaissements partiels est-il défini ?"], defaultCriticality: 'medium' },
+            '4b': { title: "Cas n°4 : Facture à payer par l'acheteur et prise en charge partiellement par un tiers", summary: "Une partie du montant de la facture est prise en charge par un tiers (subvention, assurance, aide) tandis que le solde reste à la charge du client.", risk: "Complexité du lettrage, erreur de ventilation TVA, double facturation", impact: "Suivi des encaissements, TVA, comptabilité auxiliaire", action: "Mettre en place un processus de facturation permettant d'identifier clairement la répartition des paiements et assurer la traçabilité des encaissements partiels.", checklist: ["La ventilation entre la part client et la part tiers est-elle clairement identifiée ?", "Le processus de facturation permet-il de gérer deux payeurs distincts ?"], defaultCriticality: 'high' },
+            '5': { title: "Cas n°5 : Frais payés par des collaborateurs (facture à l'entreprise)", summary: "Un collaborateur avance des frais pour lesquels une facture est émise au nom de l'entreprise.", risk: "Rapprochement note de frais / facture", impact: "Comptabilisation des charges, récupération de TVA", action: "Mettre en place un processus de rapprochement entre la note de frais et la facture électronique.", checklist: ["Le logiciel de notes de frais peut-t-il s'interfacer avec la comptabilité ?", "La facture électronique est-elle bien jointe à la note de frais pour justification ?"], defaultCriticality: 'medium' },
+            '6': { title: "Cas n°6 : Frais payés par des collaborateurs sans facture adressée à l'entreprise (simple ticket de caisse)", summary: "Les collaborateurs engagent des dépenses professionnelles pour lesquelles ils ne disposent que de justificatifs simplifiés.", risk: "Non-déductibilité de la TVA, difficultés de justification des charges, risque fiscal.", impact: "Récupération de TVA, conformité fiscale, gestion des notes de frais.", action: "Mettre en place une procédure claire pour la gestion des justificatifs simplifiés.", checklist: ["Existe-t-il une politique claire pour les notes de frais et les justificatifs ?", "Les justificatifs sont-ils conformes aux exigences fiscales pour la déduction des charges ?"], defaultCriticality: 'high' },
+            '7': { title: "Cas n°7 : Achat payé avec une carte logée (carte d'achat)", summary: "Les achats sont réalisés via une carte d'achat fournie par l'entreprise.", risk: "Rapprochement relevé de carte / factures", impact: "Comptabilisation des charges, TVA", action: "Automatiser le rapprochement entre les relevés de carte et les factures reçues.", checklist: ["Le rapprochement entre les transactions sur le relevé et les factures est-il systématique ?", "Comment sont gérées les transactions sans facture justificative ?"], defaultCriticality: 'medium' },
+            '8': { title: "Cas n°8 : Affacturage (factor connu à la facturation)", summary: "Le client cède ses créances à une société d'affacturage.", risk: "Coordination avec le factor", impact: "Suivi du poste client, lettrage", action: "Valider que les factures contiennent les mentions et coordonnées bancaires du factor.", checklist: ["Le logiciel de facturation peut-t-il gérer plusieurs coordonnées bancaires par client ?", "Le processus de transmission des statuts au factor est-il défini ?"], defaultCriticality: 'medium' },
+            '9': { title: "Cas n°9 : Facture à payer à un tiers (Distributeur/Dépositaire)", summary: "Le paiement doit être effectué à un tiers qui gère la relation commerciale.", risk: "Erreur de paiement", impact: "Lettrage, relations fournisseurs", action: "S'assurer que les coordonnées du tiers sont correctement gérées dans la base fournisseurs.", checklist: ["La base de données fournisseurs distingue-t-elle le fournisseur de l'ordre du bénéficiaire du paiement ?"], defaultCriticality: 'medium' },
+            '10': { title: "Cas n°10 : Affacturage (factor inconnu à la facturation)", summary: "La cession de la créance a lieu après l'émission de la facture.", risk: "Risque de paiement au mauvais bénéficiaire", impact: "Trésorerie, lettrage", action: "Mettre en place un processus d'information du client via les statuts de cycle de vie.", checklist: ["Le client est-il équipé pour envoyer des statuts de changement de bénéficiaire ?", "Comment le client est-il informé de l'acceptation de la cession par le factor ?"], defaultCriticality: 'high' },
+            '11': { title: "Cas n°11 : Facture traitée par un tiers pour l'acheteur", summary: "Un tiers (CSP, etc.) traite les factures pour le compte du client.", risk: "Délégation et responsabilité", impact: "Délais de traitement, validation des factures", action: "Formaliser le mandat de gestion et les droits d'accès à la PA.", checklist: ["Un mandat de gestion a-t-il été signé avec le tiers ?", "Le processus de validation des factures par le client est-il clair ?"], defaultCriticality: 'medium' },
+            '12': { title: "Cas n°12 : Intermédiaire transparent agissant pour l'acheteur", summary: "Un intermédiaire gère les commandes et la validation des factures.", risk: "Double flux de facturation", impact: "Comptabilisation (facture principale + facture de commission)", action: "Distinguer et traiter les deux flux de factures (fournisseur -> client et intermédiaire -> client).", checklist: ["Le processus comptable distingue-t-il bien la facture principale de la facture de commission de l'intermédiaire ?"], defaultCriticality: 'medium' },
+            '13': { title: "Cas n°13 : Sous-traitance avec paiement direct ou délégation de paiement", summary: "Le client est un donneur d'ordre faisant appel à des sous-traitants.", risk: "Complexité des flux (3 acteurs)", impact: "Suivi des paiements, TVA (autoliquidation)", action: "Cartographier précisément les flux de facturation et de paiement entre les trois parties.", checklist: ["Le contrat de sous-traitance prévoit-t-il la délégation de paiement ?", "Le traitement de l'autoliquidation de la TVA est-il maîtrisé ?"], defaultCriticality: 'high' },
+            '14': { title: "Cas n°14 : Co-traitance B2B", summary: "Le client fait partie d'un groupement d'entreprises (co-traitance).", risk: "Coordination entre co-traitants", impact: "Facturation, suivi des paiements", action: "Clarifier le rôle du mandataire et le processus de validation des factures.", checklist: ["La convention de co-traitance est-elle claire sur les modalités de facturation ?", "Le rôle du mandataire dans la validation est-il formalisé ?"], defaultCriticality: 'medium' },
+            '15': { title: "Cas n°15 : Commande et paiement par un tiers pour l'acheteur", summary: "Un tiers (ex: agence média) gère les commandes et paiements.", risk: "Transparence des flux", impact: "Comptabilisation des charges", action: "S'assurer que la facture finale est bien au nom du client et non du tiers.", checklist: ["Le client reçoit-t-il bien les factures originales des fournisseurs finaux ?", "Le mandat avec l'agent est-il clair sur la gestion de la facturation ?"], defaultCriticality: 'medium' },
+            '16': { title: "Cas n°16 : Facture de débours pour remboursement de la facture de vente payée par le tiers", summary: "Une entreprise paie une facture pour le compte d'un tiers (son client) et la refacture ensuite à ce client.", risk: "Qualification erronée (débours vs. revente), risque fiscal sur la TVA.", impact: "TVA, conformité des factures, lettrage.", action: "S'assurer de la qualification correcte des débours (pas de TVA sur le débours refacturé) et de la bonne émission de la facture de débours avec les mentions spécifiques.", checklist: ["Le processus de refacturation des débours est-il conforme aux règles fiscales (article 267 du CGI) ?", "Les factures de débours incluent-elles les mentions obligatoires (référence à la facture originale, nature des débours) ?"], defaultCriticality: 'medium' },
+            '17a': { title: "Cas n°17a : Vente via une marketplace (intermédiaire de paiement)", summary: "Le client vend sur une place de marché qui encaisse le paiement.", risk: "Rapprochement ventes / paiements", impact: "Trésorerie, comptabilisation des commissions", action: "Automatiser le rapprochement entre les ventes, les paiements reçus de la marketplace et les factures de commission.", checklist: ["Le client rapproche-t-il systématiquement les relevés de la marketplace avec ses ventes ?", "Les factures de commission sont-elles correctement comptabilisées ?"], defaultCriticality: 'medium' },
+            '17b': { title: "Cas n°17b : Marketplace agissant sous mandat de facturation", summary: "La marketplace émet la facture au nom du vendeur.", risk: "Perte de contrôle sur la facturation", impact: "Conformité des factures, numérotation", action: "Vérifier la conformité du mandat de facturation et la bonne transmission des factures.", checklist: ["Le mandat de facturation a-t-il été validé juridiquement ?", "Le client a-t-il accès à toutes les factures émises pour son compte ?"], defaultCriticality: 'high' },
+            '18': { title: "Cas n°18 : Gestion des notes de débit", summary: "Émission ou réception de notes de débit, qui sont des documents rectificatifs des factures.", risk: "Erreur de comptabilisation, non-conformité des flux de correction.", impact: "Comptabilité fournisseur/client, lettrage, e-invoicing.", action: "Mettre en place un processus de traitement des notes de débit conforme aux exigences de la facture électronique.", checklist: ["Le logiciel gère-t-il l'émission/réception des notes de débit électroniques ?", "Les notes de débit sont-elles correctement rattachées aux factures initiales ?"], defaultCriticality: 'medium' },
+            '19a': { title: "Cas n°19a : Facture émise par un tiers sous mandat", summary: "Un tiers est mandaté pour créer et émettre les factures du client.", risk: "Responsabilité légale", impact: "Conformité des factures", action: "S'assurer de l'existence d'un mandat de facturation en bonne et due forme.", checklist: ["Le mandat de facturation est-il écrit et détaillé ?", "Comment le client contrôle-t-il les factures émises par le mandataire ?"], defaultCriticality: 'medium' },
+            '19b': { title: "Cas n°19b : Auto-facturation", summary: "Le client (acheteur) émet lui-même les factures de son fournisseur.", risk: "Complexité du processus inversé", impact: "Numérotation des factures, gestion des statuts", action: "Valider le mandat d'auto-facturation et le processus de validation par le fournisseur.", checklist: ["Le mandat d'auto-facturation est-il en place ?", "Le fournisseur valide-t-il chaque facture émise pour son compte ?"], defaultCriticality: 'medium' },
+            '20_21': { title: "Cas n°20 & 21 : Factures d'acompte et facture finale", summary: "Le processus de vente inclus des acomptes.", risk: "Gestion de la TVA sur acomptes", impact: "Exigibilité de la TVA, lettrage", action: "S'assurer que chaque acompte donne lieu à une facture et que la TVA est correctement gérée.", checklist: ["Une facture d'acompte est-elle émise pour chaque acompte reçu ?", "La facture finale fait-il correctement référence aux acomptes versés ?"], defaultCriticality: 'medium' },
+            '22a': { title: "Cas n°22a : Escompte sur prestations de services (TVA à l'encaissement)", summary: "Le client accorde un escompte pour paiement anticipé.", risk: "Calcul de la TVA collectée", impact: "TVA, trésorerie", action: "Baser la déclaration de TVA sur le montant réellement encaissé.", checklist: ["Le logiciel comptable ajuste-t-il la TVA sur la base de l'encaissement réel en cas d'escompte ?"], defaultCriticality: 'medium' },
+            '22b': { title: "Cas n°22b : Escompte sur livraisons de biens (TVA au débit)", summary: "Le client accorde un escompte pour paiement anticipé.", risk: "Correction de la TVA déclarée", impact: "TVA, comptabilité", action: "Mettre en place un processus d'émission d'avoir pour rectifier la base de TVA.", checklist: ["Un avoir est-il systématiquement émis en cas de paiement avec escompte ?", "L'avoir est-il correctement rattaché à la facture initiale ?"], defaultCriticality: 'medium' },
+            '23': { title: "Cas n°23 : Auto-facturation B2B", summary: "Le client (acheteur) émet lui-même la facture au nom et pour le compte du fournisseur dans le cadre d'un mandat d'auto-facturation.", risk: "Perte de contrôle sur la facturation, erreurs de TVA", impact: "Responsabilité fiscale, déclaration TVA", action: "Vérifier la conformité du mandat d'auto-facturation, mettre en place un processus de validation et s'assurer de la bonne récupération des factures pour la comptabilité.", checklist: ["Le mandat d'auto-facturation est-il conforme aux exigences légales ?"], defaultCriticality: 'high' },
+            '24': { title: "Cas n°24 : Gestion des arrhes", summary: "Des arrhes sont versées par les clients à la commande, avec possibilité d'annulation et perte des arrhes.", risk: "Erreur sur l'exigibilité de la TVA, non-conformité de la facturation, litiges en cas d'annulation", impact: "TVA, comptabilisation, gestion des annulations", action: "Définir une politique claire de facturation des arrhes et s'assurer de la conformité du traitement TVA selon la nature des opérations.", checklist: ["La distinction entre arrhes et acomptes est-elle claire dans vos processus ?", "Une facture d'arrhes est-elle systématiquement émise ?", "La TVA est-elle correctement traitée selon les règles d'exigibilité ?", "Le processus en cas d'annulation (conservation des arrhes) est-il formalisé ?", "Les arrhes sont-elles correctement déduites de la facture finale ?"], defaultCriticality: 'medium' },
+            '25': { title: "Cas n°25 : Gestion des bons et des cartes cadeaux", summary: "Émission ou acceptation de bons et cartes cadeaux.", risk: "Erreur de TVA (bon à usage unique/multiple), complexité de la facturation.", impact: "TVA, comptabilisation des ventes/achats.", action: "Identifier si les bons/cartes cadeaux sont à usage unique ou multiple pour appliquer la TVA au bon moment.", checklist: ["Le client distingue-t-il les bons/cartes cadeaux à usage unique des bons/cartes cadeaux à usages multiples ?", "La TVA est-elle collectée au bon moment (émission du bon ou utilisation) ?"], defaultCriticality: 'medium' },
+            '26': { title: "Cas n°26 : Factures avec clause de réserve contractuelle", summary: "Émission ou réception de factures incluant une clause de réserve de propriété ou autre clause contractuelle.", risk: "Non-conformité des mentions, risque juridique.", impact: "Validité juridique de la facture, gestion des litiges.", action: "S'assurer que les clauses contractuelles sont correctement intégrées dans les factures électroniques et qu'elles ne contreviennent pas aux exigences du format.", checklist: ["Les clauses contractuelles sont-elles compatibles avec le format de la facture électronique ?", "Les mentions légales sont-elles toujours présentes malgré la clause ?"], defaultCriticality: 'medium' },
+            '27': { title: "Cas n°27 : Gestion des tickets de péage vendus à un assujetti", summary: "Facturation de tickets de péage à des professionnels.", risk: "Non-conformité des justificatifs de TVA, déductibilité.", impact: "Récupération de TVA, conformité fiscale.", action: "S'assurer que le client reçoit des factures conformes pour les péages afin de récupérer la TVA.", checklist: ["Le client reçoit-t-il des factures de péage avec toutes les mentions obligatoires pour la TVA ?", "Le processus de collecte de ces factures est-il efficace ?"], defaultCriticality: 'medium' },
+            '28': { title: "Cas n°28 : Gestion des notes de restaurant émises par un VENDEUR assujetti établi en France", summary: "Facturation de notes de restaurant par un professionnel (pour des repas d'affaires, par exemple).", risk: "Non-conformité des justificatifs, déductibilité.", impact: "Récupération de TVA, déduction des charges, conformité fiscale.", action: "Vérifier que les notes de restaurant sont émises sous forme de facture électronique avec les mentions obligatoires pour la déductibilité.", checklist: ["Le client reçoit-t-il des factures de restaurant conformes pour la déductibilité ?", "Le processus de collecte de ces factures est-il efficace ?"], defaultCriticality: 'medium' },
+            '29': { title: "Cas n°29 : Membre d'un assujetti unique (groupe TVA)", summary: "Le client fait partie d'un groupe TVA.", risk: "Erreur sur les mentions obligatoires", impact: "Conformité fiscale", action: "Vérifier que les factures mentionnent les identifiants du membre ET du groupe.", checklist: ["Le logiciel de facturation est-il paramétré pour inclure les deux identifiants (membre et groupe) ?"], defaultCriticality: 'medium' },
+            '30': { title: "Cas n°30 : Facture B2B émise après une vente B2C", summary: "Une vente B2C est requalifiée en B2B a posteriori.", risk: "Double déclaration de TVA", impact: "TVA, e-reporting", action: "Utiliser le cadre de facturation spécifique 'TVA déjà collectée' (S7/B7/M7).", checklist: ["Le logiciel de facturation permet-t-il d'utiliser le cadre de facturation S7/B7/M7 ?", "Le processus pour isoler cette transaction du e-reporting B2C est-il en place ?"], defaultCriticality: 'high' },
+            '31': { title: "Cas n°31 : Les factures << mixtes >> mentionnant une opération principale et une opération accessoire", summary: "Factures combinant une opération principale (ex: vente de biens) et une opération accessoire (ex: transport, installation).", risk: "Erreur de qualification TVA, e-reporting incorrect.", impact: "Déclaration de TVA, e-reporting.", action: "S'assurer que la qualification fiscale de l'opération principale et accessoire est correcte et que les montants sont bien distingués dans la facture électronique.", checklist: ["Les opérations principales et accessoires sont-elles clairement identifiées ?", "La TVA est-elle appliquée correctement à chaque composante ?"], defaultCriticality: 'medium' },
+            '32': { title: "Cas n°32 : Les paiements mensuels", summary: "Gestion des factures pour des services ou biens facturés mensuellement (abonnements, loyers, etc.).", risk: "Non-conformité sur la date d'émission/d'exigibilité, e-reporting.", impact: "Exigibilité de la TVA, e-reporting.", action: "Vérifier que les factures mensuelles sont émises et transmises dans les délais, et que le e-reporting est conforme pour ces flux récurrents.", checklist: ["Les factures mensuelles sont-elles émises et transmises dans les délais légaux ?", "Le e-reporting des paiements mensuels est-il correctement configuré ?"], defaultCriticality: 'medium' },
+            '33': { title: "Cas n°33 : Opérations soumises au régime de la marge bénéficiaire", summary: "L'activité du client relève de la TVA sur la marge.", risk: "Écart avec le pré-remplissage TVA", impact: "Déclaration de TVA", action: "Documenter le calcul de la marge pour justifier l'écart avec les données du e-invoicing.", checklist: ["Le calcul de la TVA sur la marge est-il documenté et traçable pour chaque opération ?", "Le client est-il préparé à justifier les écarts avec le pré-remplissage ?"], defaultCriticality: 'high' },
+            '34': { title: "Cas n°34 : Encaissement partiel et annulation d'encaissement", summary: "Gestion des paiements partiels reçus ou effectués, et des annulations d'encaissement.", risk: "Erreur de lettrage, non-conformité des statuts.", impact: "Lettrage comptable, suivi des paiements, e-reporting des statuts.", action: "Mettre en place un processus robuste pour la gestion des encaissements partiels et des annulations, avec mise à jour automatique des statuts de cycle de vie.", checklist: ["Le logiciel comptable gère-t-il les encaissements partiels et les annulations ?", "Les statuts de cycle de vie sont-ils mis à jour en temps réel pour ces opérations ?"], defaultCriticality: 'medium' },
+            '35': { title: "Cas n°35 : Notes d'auteur", summary: "Facturation des prestations d'auteurs (soumises à un régime spécifique).", risk: "Non-conformité fiscale (TVA, précompte), erreur de qualification.", impact: "Fiscalité, déclaration sociale, conformité des factures.", action: "S'assurer de la bonne application du régime fiscal et social des notes d'auteur et de la conformité des documents émis/reçus.", checklist: ["Le régime fiscal et social des notes d'auteur est-il correctement appliqué ?", "Les mentions obligatoires spécifiques aux notes d'auteur sont-elles présentes sur les documents ?"], defaultCriticality: 'high' },
+            '36': { title: "Cas n°36 : Opérations soumises au secret professionnel et échanges de données sensibles", summary: "Concerne les opérations soumises au secret professionnel (ex: secret bancaire) ou données sensibles.", risk: "Non-conformité RGPD, divulgation d'informations sensibles", impact: "Sanctions légales, atteinte à la réputation", action: "Mettre en place des procédures strictes pour la gestion des données sensibles et vérifier l'utilisation correcte des champs BT-153 et BT-154.", checklist: ["Les procédures de gestion des données sensibles sont-elles à jour ?", "Le personnel est-il formé à l'utilisation des champs spécifiques pour les données sensibles (BT-153/BT-154) ?"], defaultCriticality: 'high' },
+            '37': { title: "Cas n°37 : Sociétés en Participation (SEP)", summary: "Votre client est Gérant ou associé d'une Société en Participation (SEP) ou d'un groupement momentané d'entreprises (GME).", risk: "Pré-remplissage TVA erroné, confusion des flux SEP avec les flux propres", impact: "Déclaration de TVA, gestion des écarts, confidentialité de la SEP", action: "Pour les ventes : vérifier l'existence du mandat de facturation si le Gérant crée les factures du Mandataire. Pour les achats : créer une adresse de facturation dédiée (ex: SIRENGérant_gestiontiers). S'assurer que les logiciels isolent correctement les factures de la SEP.", checklist: ["Le Mandataire qui facture le client final est-il identifié ?", "Si le Gérant crée les factures via PA-TE, existe-t-il un mandat de facturation ?", "La plateforme permet-elle au Mandataire d'accéder aux factures émises en son nom ?", "Une adresse de facturation électronique dédiée a-t-elle été créée pour les achats de la SEP ?", "Les logiciels de gestion isolent-ils correctement les factures de la SEP ?", "Le processus de gestion des écarts dans les déclarations de TVA est-il formalisé ?"], defaultCriticality: 'high' },
+            '38': { title: "Cas n°38 : Factures avec sous-lignes et regroupements de lignes", summary: "Émission de factures pour des articles composites (kits, packs) ou des regroupements nécessitant des lignes de détail, d'information ou de sous-totaux.", risk: "Incohérence des montants, erreurs de transmission fiscale", impact: "E-invoicing, transmission des données fiscales, conformité des factures", action: "Utiliser impérativement le profil EXTENDED-CTC-FR. Qualifier les lignes avec le sous-type adéquat (DETAIL, INFORMATION, GROUP) et renseigner l'identifiant de ligne Parent (BT-126).", checklist: ["Le logiciel utilise-t-il le profil EXTENDED-CTC-FR pour ces factures ?", "Les lignes sont-elles correctement qualifiées (DETAIL/INFORMATION/GROUP) ?", "L'identifiant de ligne Parent (BT-126) est-il renseigné pour les sous-lignes ?", "Le montant des lignes GROUP est-il cohérent avec la somme des lignes rattachées ?", "Le client est-il informé que les lignes GROUP et INFORMATION ne sont pas transmises au flux fiscal ?"], defaultCriticality: 'medium' },
+            '39': { title: "Cas n°39 : Facture Multi-Vendeurs", summary: "Le Vendeur principal regroupe sur une seule facture ses propres prestations et celles d'autres vendeurs tiers pour un même acheteur.", risk: "Non-conformité de la facturation, erreurs dans le flux fiscal", impact: "E-invoicing, transmission des données fiscales, statuts de cycle de vie", action: "Utiliser un cadre de facturation spécifique (BT-23) égal à B8, S8 ou M8. Structurer la facture avec des sous-lignes de type GROUP pour chaque vendeur. La plateforme PA-E doit extraire les flux fiscaux pour chaque facture unitaire.", checklist: ["Le logiciel permet-il d'utiliser les cadres de facturation B8/S8/M8 ?", "La structure avec sous-lignes GROUP est-elle correctement implémentée ?", "La plateforme PA-E extrait-elle les flux fiscaux pour chaque facture unitaire ?", "Les statuts de cycle de vie sont-ils répliqués sur les factures unitaires des vendeurs secondaires ?", "Le processus de transmission des statuts 'Encaissée' est-il en place pour chaque vendeur ?"], defaultCriticality: 'high' },
+            '40': { title: "Cas n°40 : Paiements groupés, « Netting » ou Compensation", summary: "Pratique de la compensation (clearing/netting) avec les partenaires, en déduisant le montant des factures de vente du paiement des factures d'achat.", risk: "Fausse le pré-remplissage TVA, double comptabilisation", impact: "TVA, déclaration fiscale, conformité des factures", action: "Établir obligatoirement deux factures distinctes (une dans chaque sens). Renseigner le code moyen de paiement 97 (« Clearing between partners »). Émettre les statuts 'Paiement Transmis' et 'Encaissée' pour chaque facture.", checklist: ["Deux factures distinctes sont-elles établies (une dans chaque sens) ?", "Le code moyen de paiement 97 est-il utilisé dans les factures ?", "Les statuts de cycle de vie sont-ils émis correctement pour chaque facture ?", "Le client comprend-il l'interdiction d'utiliser des lignes négatives en auto-facture ?"], defaultCriticality: 'high' },
+            '41': { title: "Cas n°41 : Sociétés de Barter", summary: "Transactions via des sociétés de Barter (troc interentreprises), avec paiement partiel en numéraire (TVA) et compensation en crédits pour le solde.", risk: "Erreur de calcul du net à payer, déclaration de TVA incorrecte", impact: "TVA, suivi des paiements, reporting des encaissements", action: "Utiliser le champ 'Montant déjà payé' (BT-113) pour le montant HT compensé. Transmettre deux blocs dans le statut 'Encaissée' : un encaissement positif du montant TTC et un encaissement négatif du montant HT compensé.", checklist: ["Le champ 'Montant déjà payé' (BT-113) est-il correctement renseigné ?", "Le 'Net à payer' (BT-115) correspond-il au montant en numéraire (TVA) ?", "Le reporting de paiement inclut-il les deux blocs (positif et négatif) ?", "La TVA est-elle payée en totalité en numéraire ?"], defaultCriticality: 'medium' },
+            '42': { title: "Cas n°42 : Gestion de la détaxe", summary: "Ventes à des particuliers non-résidents (touristes) donnant lieu à une détaxe (remboursement de TVA).", risk: "Double déclaration ou erreur de TVA, non-conformité fiscale", impact: "Déclaration de TVA, e-reporting, relation avec les opérateurs de détaxe", action: "Cas 1 (gestion directe) : Déclarer en vente B2C (TLB1) puis annuler et créer une écriture en export exonéré (TNT1) après validation du BVE. Cas 2 (vente directe export) : Déclarer en TNT1, corriger en TLB1 si pas de preuve sous 6 mois. Cas 3 (opérateur de détaxe) : Établir une facture B2B à l'opérateur avec cadre B7 (TVA déjà collectée).", checklist: ["Le processus de validation de la détaxe dans les 6 mois est-il en place ?", "Le traitement des écritures (annulation/création) est-il maîtrisé ?", "Si opérateur de détaxe : le cadre de facturation B7 est-il utilisé ?", "La facture de commission de l'opérateur est-elle correctement traitée en B2B ?"], defaultCriticality: 'high' },
+            '10_after_emission': { title: "Cas n°10bis : Affacturage après émission de facture", summary: "La décision de céder la créance est prise après l'émission de la facture.", risk: "Risque de paiement au mauvais bénéficiaire, non-conformité des statuts", impact: "Trésorerie, lettrage, conformité réglementaire", action: "Mettre en place un processus de transmission du statut 'Affacturée' (code 225) pour notifier l'acheteur du changement de bénéficiaire.", checklist: ["Le processus de transmission du statut 'Affacturée' est-il en place ?", "Le client est-il informé de la nécessité de mettre en place ce processus ?", "La coordination avec le factor est-elle formalisée ?"], defaultCriticality: 'high' },
+            '17b_19a_payment_management': { title: "Cas n°17b/19a bis : Tiers gérant émission ET encaissement", summary: "Un tiers émet les factures au nom du client ET gère également l'encaissement des paiements.", risk: "Confusion sur la responsabilité de l'émission des statuts", impact: "Conformité des statuts, suivi des paiements", action: "Définir clairement qui est responsable de l'émission du statut 'Encaissée' et formaliser le processus.", checklist: ["La responsabilité de l'émission du statut 'Encaissée' est-elle clairement définie ?", "Le processus de coordination entre le tiers et le client est-il formalisé ?", "Le mandat de facturation inclut-il la gestion des statuts ?"], defaultCriticality: 'high' },
+            '14_mandataire': { title: "Cas n°14bis : Co-traitance - Client mandataire", summary: "Le client est le mandataire du groupement de co-traitance.", risk: "Obligations spécifiques non respectées", impact: "Conformité réglementaire, responsabilité légale", action: "Mettre en place les processus spécifiques au mandataire : processus de 'visa', production du document récapitulatif, et coordination avec les autres co-traitants.", checklist: ["Le processus de 'visa' des factures des co-traitants est-il en place ?", "La production du document récapitulatif est-elle automatisée ?", "La coordination avec les autres co-traitants est-elle formalisée ?"], defaultCriticality: 'high' },
+            'status_management': { title: "Cas n°37 : Gestion des statuts obligatoires", summary: "Gestion de la transmission des statuts de cycle de vie des factures, notamment le statut 'Encaissée' pour les prestations de services et les acomptes.", risk: "Non-conformité réglementaire, sanctions administratives", impact: "Conformité fiscale, suivi des paiements", action: "Définir clairement qui sera responsable de la transmission des statuts obligatoires et mettre en place les processus appropriés.", checklist: ["Qui sera chargé de la transmission du statut 'Encaissée' ?", "Le processus de transmission des statuts est-il automatisé ?", "Les délais de transmission sont-ils respectés ?"], defaultCriticality: 'high' }
+        };
+
+        // Questions database from Florian.html
+        const questions = {
+            vente: [
+                { q: "Votre client émet-t-il des factures pour des biens/services qui ont déjà été payés (ex: paiement à la commande) ?", uc: ['2'] },
+                { q: "Votre client demande-t-il des acomptes à ses clients avant la livraison finale ou la fin de la prestation ?", uc: ['20_21'] },
+                { q: "Votre client propose-t-il un escompte pour paiement anticipé ?", uc: ['22a', '22b'] },
+                { q: "Votre client cède-t-il ses créances à une société d'affacturage (factor) ?", uc: ['8', '10'], conditional: true },
+                { q: "Le paiement des factures de votre client est-il parfois versé à un tiers qui n'est pas un factor (ex: distributeur, dépositaire) ?", uc: ['9'] },
+                { q: "Un tiers (comme une marketplace ou un distributeur) émet-t-il les factures au nom et pour le compte de votre client ?", uc: ['17b', '19a'], conditional: true },
+                { q: "Votre client vend-t-il ses produits/services via une place de marché (marketplace) qui encaisse le paiement ?", uc: ['17a'] },
+                { q: "Votre client agit-t-il en tant que sous-traitant pour un autre professionnel (le donneur d'ordre) ?", uc: ['13'] },
+                { q: "Votre client fait-t-il partie d'un groupement d'entreprises (co-traitance) pour réaliser une prestation ?", uc: ['14'], conditional: true },
+                { q: "Votre client facture-t-il plusieurs de ses bons de commande ou de livraison sur une seule et même facture ?", uc: ['1'] },
+                { q: "Votre client émet-t-il des factures de débours (remboursement de dépenses payées pour le compte d'un tiers) ?", uc: ['16'] },
+                { q: "Votre client émet-t-il des notes de débit ?", uc: ['18'] },
+                { q: "Votre client émet-il des factures où le payeur est différent du client (ex: assurance, mutuelle, organisme public) ?", uc: ['3'] },
+                { q: "Émettez-vous des factures avec prise en charge partielle par un tiers (subvention, assurance, aide publique) ?", uc: ['4b'] },
+                { q: "Avez-vous des clients qui émettent eux-mêmes les factures pour votre compte (auto-facturation) ?", uc: ['23'] },
+                { q: "Recevez-vous des arrhes (sommes versées à la commande avec possibilité d'annulation) de vos clients ?", uc: ['24'] },
+                { q: "Votre client émet-t-il ou accepte-t-il des bons ou cartes cadeaux ?", uc: ['25'] },
+                { q: "Les factures de votre client (émises ou reçues) incluent-elles des clauses de réserve contractuelle (ex: clause de réserve de propriété) ?", uc: ['26'] },
+                { q: "Les factures de votre client (émises ou reçues) combinent-elles une opération principale et une ou plusieurs opérations accessoires (ex: vente de biens + transport) ?", uc: ['31'] },
+                { q: "Votre client émet-t-il ou reçoit-t-il des factures pour des paiements mensuels récurrents (ex: abonnements, loyers) ?", uc: ['32'] },
+                { q: "Votre client gère-t-il des encaissements partiels ou des annulations d'encaissement ?", uc: ['34'] },
+                { q: "Votre client fait-t-il partie d'un groupe TVA (régime de l'assujetti unique) ?", uc: ['29'] },
+                { q: "L'activité de votre client relève-t-elle d'un régime de TVA sur la marge (ex: agences de voyages, biens d'occasion, œuvres d'art) ?", uc: ['33'] },
+                { q: "Votre client, qui vend habituellement à des particuliers (B2C), doit-t-il parfois émettre une facture à un professionnel qui le demande après l'achat (ex: restaurateur, commerçant) ?", uc: ['30'] },
+                { q: "Votre client traite-t-il des opérations soumises au secret professionnel ou des échanges de données sensibles ?", uc: ['36'] },
+                { q: "Votre client émet-t-il ou reçoit-t-il des notes d'auteur ?", uc: ['35'] },
+                { q: "Votre client est-il Gérant ou associé d'une Société en Participation (SEP) ou d'un groupement momentané d'entreprises (GME) nécessitant une gestion distincte des factures d'achat et de vente pour le compte de cette entité ?", uc: ['37'] },
+                { q: "Votre client émet-il des factures pour des articles composites (kits, packs) ou des regroupements (par commande/livraison) nécessitant des lignes de détail, d'information ou de sous-totaux ?", uc: ['38'] },
+                { q: "Votre client (Vendeur principal) regroupe-t-il sur une seule facture ses propres prestations et celles d'autres vendeurs tiers (Vendeurs secondaires) pour un même acheteur ?", uc: ['39'] },
+                { q: "Votre client pratique-t-il la compensation (clearing/netting) avec ses partenaires, en déduisant le montant de ses factures de vente du paiement de ses factures d'achat ?", uc: ['40'] },
+                { q: "Votre client réalise-t-il des transactions via des sociétés de Barter (troc interentreprises), impliquant un paiement partiel en numéraire (souvent la TVA) et une compensation en crédits pour le solde ?", uc: ['41'] },
+                { q: "Votre client commerçant réalise-t-il des ventes à des particuliers non-résidents (touristes) donnant lieu à une détaxe (remboursement de TVA) ?", uc: ['42'] },
+                { q: "Gestion des statuts obligatoires (Ventes) : Qui sera chargé de la transmission du statut 'Encaissée' pour les factures de prestations de services et les acomptes ?", uc: ['status_management'] }
+            ],
+            achat: [
+                { q: "Votre client reçoit-t-il des factures de la part de ses fournisseurs en auto-facturation (c'est-à-dire que votre client crée lui-même la facture de son fournisseur) ?", uc: ['19b'] },
+                { q: "Votre client verse-t-il des acomptes à ses fournisseurs ?", uc: ['20_21'] },
+                { q: "Un tiers (ex: centre de services partagés, cabinet d'expertise comptable) gère-t-il la réception et le traitement des factures d'achat pour votre client ?", uc: ['11', '12'] },
+                { q: "Les collaborateurs de votre client engagent-ils des frais professionnels (ex: hôtel, restaurant, transport) qui sont directement facturés à l'entreprise ?", uc: ['5'] },
+                { q: "Les collaborateurs de votre client engagent-ils des frais professionnels pour lesquels ils ne reçoivent pas de facture au nom de l'entreprise (ex: simples tickets de caisse) ?", uc: ['6'] },
+                { q: "Votre client utilise-t-il des cartes d'achat professionnelles (cartes logées) pour régler ses fournisseurs ?", uc: ['7'] },
+                { q: "Votre client fait-t-il appel à des sous-traitants qu'il est parfois amené à payer directement, à la place du donneur d'ordre ?", uc: ['13'] },
+                { q: "Votre client agit-t-il en tant que mandataire dans un groupement d'entreprises (co-traitance) ?", uc: ['14'] },
+                { q: "Votre client reçoit-t-il des factures de fournisseurs qui ont recours à l'affacturage ?", uc: ['8', '10'] },
+                { q: "Le paiement des factures de votre client est-il effectué par une autre société du groupe (centrale de paiement) ?", uc: ['3'] },
+                { q: "Votre client reçoit-t-il des factures dont une partie est prise en charge par un tiers (ex: subvention, assurance) ?", uc: ['4'] },
+                { q: "Votre client reçoit-t-il des factures regroupant plusieurs de ses bons de commande ou de livraison ?", uc: ['1'] },
+                { q: "Votre client reçoit-t-il des factures de débours ?", uc: ['16'] },
+                { q: "Les factures de votre client (émises ou reçues) incluent-elles des clauses de réserve contractuelle (ex: clause de réserve de propriété) ?", uc: ['26'] },
+                { q: "Votre client traite-t-il des opérations soumises au secret professionnel ou des échanges de données sensibles ?", uc: ['36'] },
+                { q: "Votre client émet-t-il ou reçoit-t-il des notes d'auteur ?", uc: ['35'] },
+                { q: "Votre client est-il Gérant ou associé d'une Société en Participation (SEP) ou d'un groupement momentané d'entreprises (GME) nécessitant une gestion distincte des factures d'achat et de vente pour le compte de cette entité ?", uc: ['37'] },
+                { q: "Votre client pratique-t-il la compensation (clearing/netting) avec ses partenaires, en déduisant le montant de ses factures de vente du paiement de ses factures d'achat ?", uc: ['40'] },
+                { q: "Votre client réalise-t-il des transactions via des sociétés de Barter (troc interentreprises), impliquant un paiement partiel en numéraire (souvent la TVA) et une compensation en crédits pour le solde ?", uc: ['41'] }
+            ]
+        };
+
+        // Old questions database - No longer used (questions now displayed directly in HTML)
+
+        // Function to get applicable cases based on wizard answers
+        function getApplicableCasesForWizard(wizardType, currentAnswers) {
+            const applicable = new Set();
+            if (currentAnswers) {
+                questions[wizardType].forEach((q, index) => {
+                    if (currentAnswers[index] === 'yes') {
+                        q.uc.forEach(ucId => applicable.add(ucId));
+                        
+                        // Handle conditional questions
+                        if (q.conditional) {
+                            const conditionalAnswer = currentAnswers[`conditional_${index}`];
+                            
+                            // Question 4 (Affacturage) - index 3
+                            if (index === 3 && conditionalAnswer === 'after') {
+                                applicable.add('10_after_emission');
+                            }
+                            
+                            // Question 6 (Tiers émission factures) - index 5
+                            if (index === 5 && conditionalAnswer === 'yes') {
+                                applicable.add('17b_19a_payment_management');
+                            }
+                            
+                            // Question 9 (Co-traitance) - index 8
+                            if (index === 8 && conditionalAnswer === 'yes') {
+                                applicable.add('14_mandataire');
+                            }
+                        }
+                    }
+                });
+            }
+            return applicable;
+        }
+
+        // Generate identified cases section
+        function generateIdentifiedCases() {
+            console.log('=== generateIdentifiedCases called ===');
+            console.log('currentClient:', currentClient);
+            
+            let html = `
+                <div class="mb-8">
+                    <h2>Cas d'usage identifiés - Analyse complète</h2>
+                    <div class="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p class="text-blue-800 font-medium">Cette section présente tous les cas d'usage détectés lors de l'analyse des flux de vente et d'achat du client.</p>
+                        <p class="text-blue-600 text-sm mt-2">Pour chaque cas, vous trouverez le résumé, les risques identifiés, l'impact sur l'activité, les actions recommandées et les réponses à la checklist de conformité.</p>
+                    </div>
+                    <div class="space-y-6">
+            `;
+            
+            // Get all applicable cases from all analyses
+            const allApplicableCases = new Set();
+            
+            console.log('Client analyses:', currentClient.analyses);
+            
+            if (currentClient.analyses) {
+                Object.keys(currentClient.analyses).forEach(analysisType => {
+                    const analysis = currentClient.analyses[analysisType];
+                    console.log(`Analysis ${analysisType}:`, analysis);
+                    
+                    if (analysis.answers) {
+                        console.log(`Answers for ${analysisType}:`, analysis.answers);
+                        const applicableCases = getApplicableCasesForWizard(analysisType, analysis.answers);
+                        console.log(`Applicable cases for ${analysisType}:`, applicableCases);
+                        applicableCases.forEach(ucId => allApplicableCases.add(ucId));
+                    }
+                });
+            }
+            
+            console.log('All applicable cases:', allApplicableCases);
+            
+            if (allApplicableCases.size === 0) {
+                html += `
+                    <div class="bg-green-50 p-6 rounded-lg border border-green-200 text-center">
+                        <i class="fas fa-check-circle text-4xl text-green-600 mb-4"></i>
+                        <h3 class="text-green-800 font-semibold mb-2">Aucun cas d'usage spécifique identifié</h3>
+                        <p class="text-green-700">Les analyses n'ont pas révélé de cas d'usage particuliers nécessitant une attention spéciale.</p>
+                        <p class="text-green-600 text-sm mt-2">Votre client semble avoir des flux de facturation standards qui ne nécessitent pas de traitement particulier.</p>
+                    </div>
+                `;
+            } else {
+                // Sort cases by ID for consistent display
+                const sortedCases = Array.from(allApplicableCases).sort((a, b) => {
+                    const aNum = parseInt(a.replace(/\D/g, ''));
+                    const bNum = parseInt(b.replace(/\D/g, ''));
+                    return aNum - bNum;
+                });
+                
+                // Add summary section
+                html += `
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-3">Résumé de l'analyse</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="text-center p-3 bg-white rounded border">
+                                <div class="text-2xl font-bold text-blue-600">${sortedCases.length}</div>
+                                <div class="text-sm text-gray-600">Cas d'usage identifiés</div>
+                            </div>
+                            <div class="text-center p-3 bg-white rounded border">
+                                <div class="text-2xl font-bold text-orange-600">${sortedCases.filter(ucId => useCases[ucId]?.defaultCriticality === 'high').length}</div>
+                                <div class="text-sm text-gray-600">Cas à criticité élevée</div>
+                            </div>
+                            <div class="text-center p-3 bg-white rounded border">
+                                <div class="text-2xl font-bold text-yellow-600">${sortedCases.filter(ucId => useCases[ucId]?.defaultCriticality === 'medium').length}</div>
+                                <div class="text-sm text-gray-600">Cas à criticité moyenne</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                sortedCases.forEach((ucId, index) => {
+                    const useCase = useCases[ucId];
+                    if (useCase) {
+                        const criticalityClass = getCriticalityClass(useCase.defaultCriticality);
+                        const criticalityLabel = getCriticalityLabel(useCase.defaultCriticality);
+                        const criticalityColor = getCriticalityColor(useCase.defaultCriticality);
+                        
+                        html += `
+                            <div class="border border-gray-200 rounded-lg overflow-hidden shadow-sm ${criticalityClass}">
+                                <div class="bg-gradient-to-r ${criticalityColor} p-4 border-b border-gray-200">
+                                    <div class="flex justify-between items-start">
+                                        <h4 class="font-bold text-white text-lg">${useCase.title}</h4>
+                                        <span class="bg-white bg-opacity-20 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                            ${criticalityLabel}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-6">
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                                        <div class="space-y-4">
+                                            <div class="bg-white p-4 rounded-lg border border-gray-200">
+                                                <h5 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                                                    Résumé
+                                                </h5>
+                                                <p class="text-gray-700">${useCase.summary}</p>
+                                            </div>
+                                            
+                                            <div class="bg-white p-4 rounded-lg border border-gray-200">
+                                                <h5 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                                    <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>
+                                                    Risques identifiés
+                                                </h5>
+                                                <p class="text-gray-700">${useCase.risk}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="space-y-4">
+                                            <div class="bg-white p-4 rounded-lg border border-gray-200">
+                                                <h5 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                                    <i class="fas fa-chart-line text-orange-600 mr-2"></i>
+                                                    Impact sur l'activité
+                                                </h5>
+                                                <p class="text-gray-700">${useCase.impact}</p>
+                                            </div>
+                                            
+                                            <div class="bg-white p-4 rounded-lg border border-gray-200">
+                                                <h5 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                                    <i class="fas fa-tasks text-green-600 mr-2"></i>
+                                                    Action recommandée
+                                                </h5>
+                                                <p class="text-gray-700">${useCase.action}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    ${useCase.checklist ? `
+                                        <div class="bg-white p-4 rounded-lg border border-gray-200">
+                                            <h5 class="font-semibold text-gray-800 mb-4 flex items-center">
+                                                <i class="fas fa-clipboard-check text-purple-600 mr-2"></i>
+                                                Checklist de conformité
+                                            </h5>
+                                            <div class="space-y-3">
+                                                ${useCase.checklist.map((item, checklistIndex) => {
+                                                    // Collect saved responses per analysis type (vente/achat)
+                                                    const responsesByType = {};
+                                                    if (currentClient.analyses) {
+                                                        Object.keys(currentClient.analyses).forEach(analysisType => {
+                                                            const analysis = currentClient.analyses[analysisType];
+                                                            if (analysis && analysis.checklistResponses &&
+                                                                analysis.checklistResponses[ucId] &&
+                                                                analysis.checklistResponses[ucId][checklistIndex]) {
+                                                                const saved = analysis.checklistResponses[ucId][checklistIndex];
+                                                                responsesByType[analysisType] = { answer: saved.answer, notes: saved.notes };
+                                                            }
+                                                        });
+                                                    }
+                                                    
+                                                    const typeOrder = ['vente', 'achat'];
+                                                    const typesPresent = typeOrder
+                                                        .filter(t => responsesByType[t])
+                                                        .concat(Object.keys(responsesByType).filter(t => !typeOrder.includes(t)));
+                                                    
+                                                    const renderLine = (analysisType, resp) => {
+                                                        const responseText = resp && resp.answer === 'yes' ? 'Oui'
+                                                            : resp && resp.answer === 'no' ? 'Non'
+                                                            : resp && resp.answer === 'na' ? 'Non applicable'
+                                                            : 'Non renseigné';
+                                                        const responseColor = resp && resp.answer === 'yes' ? 'text-green-600'
+                                                            : resp && resp.answer === 'no' ? 'text-red-600'
+                                                            : resp && resp.answer === 'na' ? 'text-gray-600'
+                                                            : 'text-gray-500';
+                                                        const responseIcon = resp && resp.answer === 'yes' ? 'fa-check-circle'
+                                                            : resp && resp.answer === 'no' ? 'fa-times-circle'
+                                                            : resp && resp.answer === 'na' ? 'fa-minus-circle'
+                                                            : 'fa-question-circle';
+                                                        const typeLabel = analysisType === 'vente' ? 'Vente' : analysisType === 'achat' ? 'Achat' : analysisType;
+                                                        return `
+                                                            <div class="flex items-start space-x-3 mt-1">
+                                                                <i class="fas ${responseIcon} ${responseColor} mt-1"></i>
+                                                                <div class="flex-1">
+                                                                    <div class="flex items-center">
+                                                                        <span class="text-xs font-semibold text-gray-500 mr-2">${typeLabel}</span>
+                                                                        <span class="text-sm font-semibold ${responseColor}">Réponse : ${responseText}</span>
+                                                                    </div>
+                                                                    ${resp && resp.notes ? `
+                                                                        <div class="mt-1 p-2 bg-gray-50 rounded border-l-3 border-blue-400">
+                                                                            <p class="text-xs text-gray-600 italic"><strong>Notes :</strong> ${resp.notes}</p>
+                                                                        </div>
+                                                                    ` : ''}
+                                                                </div>
+                                                            </div>
+                                                        `;
+                                                    };
+                                                    
+                                                    const hasAny = typesPresent.length > 0;
+                                                    
+                                                    return `
+                                                        <div class="border border-gray-200 rounded-lg p-3">
+                                                            <p class="text-gray-800 font-medium">${item}</p>
+                                                            <div class="mt-2">
+                                                                ${hasAny
+                                                                    ? typesPresent.map(t => renderLine(t, responsesByType[t])).join('')
+                                                                    : `
+                                                                        <div class="flex items-center">
+                                                                            <i class="fas fa-question-circle text-gray-500 mr-2"></i>
+                                                                            <span class="text-sm font-semibold text-gray-500">Réponse : Non renseigné</span>
+                                                                        </div>
+                                                                    `
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    `;
+                                                }).join('')}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    ${(() => {
+                                        // Get saved use case notes per analysis type
+                                        const notesByType = {};
+                                        if (currentClient.analyses) {
+                                            Object.keys(currentClient.analyses).forEach(analysisType => {
+                                                const analysis = currentClient.analyses[analysisType];
+                                                if (analysis.useCaseNotes && analysis.useCaseNotes[ucId]) {
+                                                    notesByType[analysisType] = analysis.useCaseNotes[ucId];
+                                                }
+                                            });
+                                        }
+                                        const typeOrder = ['vente', 'achat'];
+                                        const typesPresent = typeOrder
+                                            .filter(t => notesByType[t])
+                                            .concat(Object.keys(notesByType).filter(t => !typeOrder.includes(t)));
+                                        if (typesPresent.length === 0) {
+                                            return '';
+                                        }
+                                        return `
+                                            <div class="mt-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                                <h5 class="font-semibold text-blue-800 mb-2 flex items-center">
+                                                    <i class="fas fa-sticky-note text-blue-600 mr-2"></i>
+                                                    Notes générales
+                                                </h5>
+                                                ${typesPresent.map(t => `
+                                                    <div class="mb-2">
+                                                        <span class="text-xs font-semibold text-gray-500 mr-2">${t === 'vente' ? 'Vente' : t === 'achat' ? 'Achat' : t}</span>
+                                                        <p class="text-blue-700 inline">${notesByType[t]}</p>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        `;
+                                    })()}
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+            }
+            
+            html += `</div></div>`;
+            return html;
+        }
+
+        // Generate client summary (for client report)
+        function generateClientSummary() {
+            console.log('=== generateClientSummary called ===');
+            
+            let html = `
+                <div class="mb-8">
+                    <h2>Synthèse de l'analyse</h2>
+                    <div class="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p class="text-blue-800 font-medium">Cette section présente une synthèse des cas d'usage identifiés lors de l'analyse de vos flux de facturation.</p>
+                        <p class="text-blue-600 text-sm mt-2">Ces éléments nécessitent une attention particulière pour assurer votre conformité à la facture électronique.</p>
+                    </div>
+            `;
+            
+            // Get all applicable cases from all analyses
+            const allApplicableCases = new Set();
+            
+            if (currentClient.analyses) {
+                Object.keys(currentClient.analyses).forEach(analysisType => {
+                    const analysis = currentClient.analyses[analysisType];
+                    if (analysis.answers) {
+                        const applicableCases = getApplicableCasesForWizard(analysisType, analysis.answers);
+                        applicableCases.forEach(ucId => allApplicableCases.add(ucId));
+                    }
+                });
+            }
+            
+            if (allApplicableCases.size === 0) {
+                html += `
+                    <div class="bg-green-50 p-6 rounded-lg border border-green-200 text-center">
+                        <i class="fas fa-check-circle text-4xl text-green-600 mb-4"></i>
+                        <h3 class="text-green-800 font-semibold mb-2">Aucun cas particulier identifié</h3>
+                        <p class="text-green-700">Vos flux de facturation semblent standards et ne nécessitent pas de traitement particulier.</p>
+                        <p class="text-green-600 text-sm mt-2">Vous pouvez procéder à la mise en place de la facture électronique selon les procédures standard.</p>
+                    </div>
+                `;
+            } else {
+                // Sort cases by ID for consistent display
+                const sortedCases = Array.from(allApplicableCases).sort((a, b) => {
+                    const aNum = parseInt(a.replace(/\D/g, ''));
+                    const bNum = parseInt(b.replace(/\D/g, ''));
+                    return aNum - bNum;
+                });
+                
+                // Add summary section
+                html += `
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-3">Résumé de l'analyse</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="text-center p-3 bg-white rounded border">
+                                <div class="text-2xl font-bold text-blue-600">${sortedCases.length}</div>
+                                <div class="text-sm text-gray-600">Cas d'usage identifiés</div>
+                            </div>
+                            <div class="text-center p-3 bg-white rounded border">
+                                <div class="text-2xl font-bold text-orange-600">${sortedCases.filter(ucId => useCases[ucId]?.defaultCriticality === 'high').length}</div>
+                                <div class="text-sm text-gray-600">Cas prioritaires</div>
+                            </div>
+                            <div class="text-center p-3 bg-white rounded border">
+                                <div class="text-2xl font-bold text-yellow-600">${sortedCases.filter(ucId => useCases[ucId]?.defaultCriticality === 'medium').length}</div>
+                                <div class="text-sm text-gray-600">Cas à surveiller</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Display cases in a simplified format for clients
+                html += `<div class="space-y-4">`;
+                
+                sortedCases.forEach((ucId, index) => {
+                    const useCase = useCases[ucId];
+                    if (useCase) {
+                        const criticalityLabel = getCriticalityLabel(useCase.defaultCriticality);
+                        const criticalityColor = getCriticalityColor(useCase.defaultCriticality);
+                        
+                        html += `
+                            <div class="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                                <div class="bg-gradient-to-r ${criticalityColor} p-4 border-b border-gray-200">
+                                    <div class="flex justify-between items-start">
+                                        <h4 class="font-bold text-white text-lg">${useCase.title}</h4>
+                                        <span class="bg-white bg-opacity-20 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                            Priorité : ${criticalityLabel}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-6">
+                                    <div class="mb-4">
+                                        <h5 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                            <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                                            Description
+                                        </h5>
+                                        <p class="text-gray-700">${useCase.summary}</p>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <h5 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                            <i class="fas fa-exclamation-triangle text-orange-600 mr-2"></i>
+                                            Points d'attention
+                                        </h5>
+                                        <p class="text-gray-700">${useCase.risk}</p>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <h5 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                            <i class="fas fa-tasks text-green-600 mr-2"></i>
+                                            Actions recommandées
+                                        </h5>
+                                        <p class="text-gray-700">${useCase.action}</p>
+                                    </div>
+                                    
+                                    ${useCase.checklist ? `
+                                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                            <h5 class="font-semibold text-blue-800 mb-3 flex items-center">
+                                                <i class="fas fa-clipboard-check text-blue-600 mr-2"></i>
+                                                Points de contrôle
+                                            </h5>
+                                            <ul class="list-disc pl-6 space-y-2">
+                                                ${useCase.checklist.map(item => `
+                                                    <li class="text-blue-700">${item}</li>
+                                                `).join('')}
+                                            </ul>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+                
+                html += `</div>`;
+            }
+            
+            html += `</div>`;
+            return html;
+        }
+
+        // Generate notes section
+        function generateNotesSection() {
+            return `
+                <div class="mb-8">
+                    <h2>Notes de l'Expert Comptable</h2>
+                    <div class="bg-yellow-50 p-4 rounded-lg">
+                        <p class="text-gray-700">Notes et observations spécifiques au client...</p>
+                        <div class="mt-4">
+                            <textarea class="w-full p-3 border border-gray-300 rounded-lg" rows="4" placeholder="Ajoutez vos notes ici..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Helper functions
+        // Obsolete function - no longer used
+        // function getBillingLevelLabel(billingLevel) { ... }
+
+        function getStatusLabel(status) {
+            const labels = {
+                'en_cours': 'En cours',
+                'termine': 'Terminé',
+                'archive': 'Archivé'
+            };
+            return labels[status] || 'En cours';
+        }
+
+        function getCriticalityClass(criticality) {
+            const classes = {
+                'low': 'bg-green-50 border-green-200',
+                'medium': 'bg-yellow-50 border-yellow-200',
+                'high': 'bg-red-50 border-red-200'
+            };
+            return classes[criticality] || classes['medium'];
+        }
+
+        function getCriticalityLabel(criticality) {
+            const labels = {
+                'low': 'Faible',
+                'medium': 'Moyenne',
+                'high': 'Élevée'
+            };
+            return labels[criticality] || labels['medium'];
+        }
+
+        function getCriticalityColor(criticality) {
+            const colors = {
+                'low': 'from-green-500 to-green-600',
+                'medium': 'from-yellow-500 to-yellow-600',
+                'high': 'from-red-500 to-red-600'
+            };
+            return colors[criticality] || colors['medium'];
+        }
+
+        // Export functions
+        function exportToPDF() {
+            window.print();
+        }
+
+        function exportToWord() {
+            const content = document.getElementById('report-content').innerHTML;
+            const html = `
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>Rapport E-Factu</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        h1 { color: #1e40af; font-size: 24px; }
+                        h2 { color: #1e40af; font-size: 18px; margin-top: 20px; }
+                        h3 { color: #374151; font-size: 16px; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+                        th, td { padding: 8px; border: 1px solid #ccc; text-align: left; }
+                        th { background-color: #f3f4f6; }
+                    </style>
+                </head>
+                <body>${content}</body>
+                </html>
+            `;
+            
+            const blob = new Blob([html], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${currentClient.name}_Rapport_Facture_Electronique.doc`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function newAnalysis() {
+            window.location.href = 'new-dossier.html';
+        }
+
+        function backToClient() {
+            window.location.href = 'client-list.html';
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeReport);
+    </script>
+</body>
+</html>

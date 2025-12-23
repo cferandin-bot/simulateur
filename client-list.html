@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Dossiers Clients - E-Factu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* Enhanced card animations */
+        .client-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .client-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .client-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .client-card:hover::before {
+            left: 100%;
+        }
+        
+        /* Button animations */
+        .btn-modern {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-modern:active {
+            transform: translateY(0);
+        }
+        
+        /* Search input enhancement */
+        .search-input {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Status badge animations */
+        .status-badge {
+            transition: all 0.3s ease;
+        }
+        
+        .status-badge:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Fade in animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        /* Background pattern */
+        .bg-pattern {
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(79, 70, 229, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(99, 102, 241, 0.03) 0%, transparent 50%);
+        }
+        
+        /* Action button hover effects */
+        .action-btn {
+            transition: all 0.2s ease;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .action-btn.edit:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        .action-btn.view:hover {
+            background-color: rgba(34, 197, 94, 0.1);
+        }
+        
+        .action-btn.delete:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen bg-pattern">
+    <!-- Client List Screen -->
+    <div id="client-list-screen" class="p-8 md:p-12 fade-in-up">
+        <h2 class="text-3xl font-bold text-center mb-8 text-gray-800">Mes dossiers clients - Récapitulatif</h2>
+        <div class="mb-8 flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3">
+            <input type="text" id="client-search" onkeyup="filterClientList()" placeholder="🔍 Rechercher un client..." class="search-input flex-grow border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 bg-white shadow-sm">
+            <select id="client-status-filter" onchange="filterClientList()" class="border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 bg-white shadow-sm">
+                <option value="">📊 Tous les statuts</option>
+                <option value="vente_ok">✅ Questionnaire vente OK</option>
+                <option value="achat_ok">✅ Questionnaire achat OK</option>
+                <option value="both_ok">✅ Les deux questionnaires OK</option>
+                <option value="vente_manquant">❌ Questionnaire vente manquant</option>
+                <option value="achat_manquant">❌ Questionnaire achat manquant</option>
+                <option value="both_manquant">❌ Les deux questionnaires manquants</option>
+            </select>
+            <select id="client-sort-by" onchange="filterClientList()" class="border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 bg-white shadow-sm">
+                <option value="name_asc">📝 Nom (A-Z)</option>
+                <option value="name_desc">📝 Nom (Z-A)</option>
+                <option value="date_asc">📅 Date revue (Ancien au récent)</option>
+                <option value="date_desc">📅 Date revue (Récent à l'ancien)</option>
+            </select>
+            <input type="file" id="import-json-file" accept=".json" class="hidden" onchange="handleImportFile(event)">
+            <button onclick="document.getElementById('import-json-file').click()" class="btn-modern bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-3 rounded-xl shadow-lg hover:from-purple-700 hover:to-purple-800 text-sm font-semibold">
+                <i class="fas fa-upload mr-2"></i> Importer
+            </button>
+            <button onclick="window.location.href='dashboard.html'" class="btn-modern bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-6 py-3 rounded-xl shadow-lg hover:from-indigo-700 hover:to-indigo-800 text-sm font-semibold">
+                <i class="fas fa-chart-pie mr-2"></i> Tableau de bord
+            </button>
+            <button onclick="showProgressExportModal()" class="btn-modern bg-gradient-to-r from-orange-600 to-orange-700 text-white px-6 py-3 rounded-xl shadow-lg hover:from-orange-700 hover:to-orange-800 text-sm font-semibold">
+                <i class="fas fa-file-pdf mr-2"></i> Exporter l'état d'avancement
+            </button>
+            <div class="relative">
+                <button onclick="toggleExportMenu()" class="btn-modern bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl shadow-lg hover:from-green-700 hover:to-green-800 text-sm font-semibold">
+                    <i class="fas fa-download mr-2"></i> Exporter
+                </button>
+                <div id="export-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 z-10">
+                    <button onclick="exportAllData('json')" class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-t-xl">
+                        <i class="fas fa-file-code mr-2 text-blue-600"></i> Export JSON
+                    </button>
+                    <button onclick="exportAllData('csv')" class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-b-xl">
+                        <i class="fas fa-file-csv mr-2 text-green-600"></i> Export CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="clients-container" class="space-y-6">
+            <!-- Client list will be rendered here -->
+            <div id="no-clients-message" class="text-center text-gray-500 py-12 bg-white rounded-2xl shadow-lg border border-gray-100">
+                <i class="fas fa-folder-minus text-6xl mb-6 text-gray-300"></i>
+                <h3 class="text-xl font-semibold text-gray-600 mb-2">Aucun dossier client</h3>
+                <p class="text-gray-500">Aucun dossier client sauvegardé pour le moment.</p>
+                <p class="text-gray-500">Cliquez sur "Démarrer une nouvelle analyse" pour commencer !</p>
+            </div>
+        </div>
+        <div class="mt-10 text-center space-x-4">
+            <button onclick="window.location.href='new-dossier.html'" class="btn-modern bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800 font-semibold">
+                <i class="fas fa-plus mr-2"></i> Nouveau dossier client
+            </button>
+            <button onclick="window.location.href='index.html'" class="btn-modern bg-gradient-to-r from-gray-600 to-gray-700 text-white px-8 py-4 rounded-xl shadow-lg hover:from-gray-700 hover:to-gray-800 font-semibold">
+                <i class="fas fa-chevron-left mr-2"></i> Retour à l'accueil
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal pour l'export d'état d'avancement -->
+    <div id="progress-export-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-file-pdf text-white text-2xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">Exporter l'état d'avancement</h3>
+                <p class="text-gray-600">Veuillez renseigner vos informations pour générer le rapport PDF</p>
+            </div>
+            
+            <form id="progress-export-form" class="space-y-4">
+                <div>
+                    <label for="user-firstname" class="block text-sm font-semibold text-gray-700 mb-2">Prénom *</label>
+                    <input type="text" id="user-firstname" required class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm" placeholder="Votre prénom">
+                </div>
+                
+                <div>
+                    <label for="user-lastname" class="block text-sm font-semibold text-gray-700 mb-2">Nom *</label>
+                    <input type="text" id="user-lastname" required class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm" placeholder="Votre nom">
+                </div>
+                
+                <div class="flex space-x-3 pt-4">
+                    <button type="button" onclick="hideProgressExportModal()" class="flex-1 bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-orange-600 to-orange-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-orange-700 hover:to-orange-800 transition-all">
+                        <i class="fas fa-download mr-2"></i> Générer PDF
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        let clients = [];
+
+        // Load clients from localStorage
+        function loadClients() {
+            const stored = localStorage.getItem('clients');
+            clients = stored ? JSON.parse(stored) : [];
+            renderClientList();
+        }
+
+        // Render client list
+        function renderClientList() {
+            const container = document.getElementById('clients-container');
+            let noClientsMessage = document.getElementById('no-clients-message');
+
+            // Recréer l'élément no-clients-message s'il n'existe plus
+            if (!noClientsMessage) {
+                noClientsMessage = document.createElement('div');
+                noClientsMessage.id = 'no-clients-message';
+                noClientsMessage.className = 'text-center text-gray-500 py-12 bg-white rounded-2xl shadow-lg border border-gray-100';
+                noClientsMessage.innerHTML = `
+                    <i class="fas fa-folder-minus text-6xl mb-6 text-gray-300"></i>
+                    <h3 class="text-xl font-semibold text-gray-600 mb-2">Aucun dossier client</h3>
+                    <p class="text-gray-500">Aucun dossier client sauvegardé pour le moment.</p>
+                    <p class="text-gray-500">Cliquez sur "Démarrer une nouvelle analyse" pour commencer !</p>
+                `;
+            }
+
+            if (clients.length === 0) {
+                noClientsMessage.classList.remove('hidden');
+                container.innerHTML = '';
+                container.appendChild(noClientsMessage);
+                return;
+            }
+
+            noClientsMessage.classList.add('hidden');
+            
+            let html = '';
+            clients.forEach((client, index) => {
+                const analysisStatus = getAnalysisStatus(client);
+                const lastModified = new Date(client.lastModified || Date.now()).toLocaleDateString('fr-FR');
+                
+                html += `
+                    <div class="client-card bg-white p-6 rounded-2xl shadow-lg border border-gray-100 cursor-pointer" style="animation-delay: ${index * 0.1}s;" onclick="handleClientClick('${client.id}', event)">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center mb-2">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-4">
+                                        <i class="fas fa-user text-white text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold text-gray-800">${client.name}</h3>
+                                    </div>
+                                </div>
+                                <div class="flex items-center text-sm text-gray-500 mb-3">
+                                    <i class="fas fa-clock mr-2"></i>
+                                    <span>Dernière modification: ${lastModified}</span>
+                                </div>
+                                <div class="flex items-center text-sm text-gray-600">
+                                    <i class="fas fa-chart-line mr-2"></i>
+                                    <span class="font-medium">Analyses:</span>
+                                    <span class="ml-1">${client.analyses ? Object.keys(client.analyses).length : 0} flux analysé(s)</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end space-y-3">
+                                <div class="status-badge">
+                                    ${analysisStatus}
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button onclick="editClient('${client.id}')" class="action-btn edit text-blue-600 hover:text-blue-800" title="Éditer">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="viewClient('${client.id}')" class="action-btn view text-green-600 hover:text-green-800" title="Voir le dossier">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button onclick="deleteClient('${client.id}')" class="action-btn delete text-red-600 hover:text-red-800" title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex items-center text-sm text-gray-600">
+                                    <i class="fas fa-calendar-alt mr-2"></i>
+                                    <span>Créé le ${new Date(client.createdAt || Date.now()).toLocaleDateString('fr-FR')}</span>
+                                </div>
+                            </div>
+                            <button onclick="generateReport('${client.id}')" class="btn-modern bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg shadow-md hover:from-blue-700 hover:to-blue-800 text-sm font-semibold">
+                                <i class="fas fa-file-alt mr-2"></i> Générer les rapports
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Get analysis status HTML
+        function getAnalysisStatus(client) {
+            // Check if client is out of scope
+            if (client.horsChamp === true) {
+                return '<div class="flex flex-col space-y-1"><span class="bg-gray-100 text-gray-800 text-xs font-bold px-2 py-1 rounded-full border border-gray-300">ℹ️ Hors champ de la réforme</span></div>';
+            }
+            
+            const hasVenteAnalysis = client.analyses && client.analyses.vente && client.analyses.vente.answers && client.analyses.vente.answers.length > 0;
+            const hasAchatAnalysis = client.analyses && client.analyses.achat && client.analyses.achat.answers && client.analyses.achat.answers.length > 0;
+            
+            // Calculer le nombre de réponses
+            const venteStats = getQuestionnaireStats(client, 'vente');
+            const achatStats = getQuestionnaireStats(client, 'achat');
+            
+            let statusHtml = '<div class="flex flex-col space-y-1">';
+            
+            // Vente analysis status with question count
+            if (hasVenteAnalysis) {
+                const venteComplete = venteStats.answered >= venteStats.total;
+                const venteColor = venteComplete ? 'green' : 'orange';
+                const venteIcon = venteComplete ? '✅' : '⚠️';
+                statusHtml += `<span class="bg-${venteColor}-100 text-${venteColor}-800 text-xs font-bold px-2 py-1 rounded-full border border-${venteColor}-200">${venteIcon} Vente : ${venteStats.answered}/${venteStats.total} questions</span>`;
+            } else {
+                statusHtml += '<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full border border-red-200">❌ Questionnaire vente : A renseigner (0/' + venteStats.total + ')</span>';
+            }
+            
+            // Achat analysis status with question count
+            if (hasAchatAnalysis) {
+                const achatComplete = achatStats.answered >= achatStats.total;
+                const achatColor = achatComplete ? 'green' : 'orange';
+                const achatIcon = achatComplete ? '✅' : '⚠️';
+                statusHtml += `<span class="bg-${achatColor}-100 text-${achatColor}-800 text-xs font-bold px-2 py-1 rounded-full border border-${achatColor}-200">${achatIcon} Achat : ${achatStats.answered}/${achatStats.total} questions</span>`;
+            } else {
+                statusHtml += '<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full border border-red-200">❌ Questionnaire achat : A renseigner (0/' + achatStats.total + ')</span>';
+            }
+            
+            statusHtml += '</div>';
+            return statusHtml;
+        }
+        
+        // Calculate questionnaire statistics (answered vs total)
+        function getQuestionnaireStats(client, wizardType) {
+            // Total questions per type
+            const totalQuestions = {
+                vente: 33, // 33 questions pour le questionnaire vente
+                achat: 19  // 19 questions pour le questionnaire achat
+            };
+            
+            const total = totalQuestions[wizardType] || 0;
+            let answered = 0;
+            
+            // Check answers in analyses
+            if (client.analyses && client.analyses[wizardType] && client.analyses[wizardType].answers) {
+                const answers = client.analyses[wizardType].answers;
+                answered = Object.keys(answers).filter(key => {
+                    // Only count numeric keys (actual question indices)
+                    if (!isNaN(parseInt(key))) {
+                        const answer = answers[key];
+                        return answer !== null && answer !== undefined && answer !== '';
+                    }
+                    return false;
+                }).length;
+            }
+            
+            // Also check localStorage for wizard answers
+            const wizardKey = `wizard_${client.name}_${wizardType}`;
+            try {
+                const wizardAnswers = localStorage.getItem(wizardKey);
+                if (wizardAnswers) {
+                    const parsedAnswers = JSON.parse(wizardAnswers);
+                    if (Array.isArray(parsedAnswers)) {
+                        const wizardAnsweredCount = parsedAnswers.filter((answer, index) => {
+                            return answer !== null && answer !== undefined && answer !== '';
+                        }).length;
+                        answered = Math.max(answered, wizardAnsweredCount);
+                    } else if (typeof parsedAnswers === 'object') {
+                        const wizardAnsweredCount = Object.keys(parsedAnswers).filter(key => {
+                            if (!isNaN(parseInt(key))) {
+                                const answer = parsedAnswers[key];
+                                return answer !== null && answer !== undefined && answer !== '';
+                            }
+                            return false;
+                        }).length;
+                        answered = Math.max(answered, wizardAnsweredCount);
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur lors de la lecture des réponses wizard:', error);
+            }
+            
+            return { answered, total };
+        }
+
+        // Filter client list
+        function filterClientList() {
+            const searchTerm = document.getElementById('client-search').value.toLowerCase();
+            const statusFilter = document.getElementById('client-status-filter').value;
+            const sortBy = document.getElementById('client-sort-by').value;
+
+            let filteredClients = clients.filter(client => {
+                const matchesSearch = client.name.toLowerCase().includes(searchTerm) || 
+                                    (client.email && client.email.toLowerCase().includes(searchTerm));
+                
+                // Check analysis status for filtering
+                const hasVenteAnalysis = client.analyses && client.analyses.vente && client.analyses.vente.answers && client.analyses.vente.answers.length > 0;
+                const hasAchatAnalysis = client.analyses && client.analyses.achat && client.analyses.achat.answers && client.analyses.achat.answers.length > 0;
+                
+                let matchesStatus = true;
+                if (statusFilter) {
+                    switch(statusFilter) {
+                        case 'vente_ok':
+                            matchesStatus = hasVenteAnalysis;
+                            break;
+                        case 'achat_ok':
+                            matchesStatus = hasAchatAnalysis;
+                            break;
+                        case 'both_ok':
+                            matchesStatus = hasVenteAnalysis && hasAchatAnalysis;
+                            break;
+                        case 'vente_manquant':
+                            matchesStatus = !hasVenteAnalysis;
+                            break;
+                        case 'achat_manquant':
+                            matchesStatus = !hasAchatAnalysis;
+                            break;
+                        case 'both_manquant':
+                            matchesStatus = !hasVenteAnalysis && !hasAchatAnalysis;
+                            break;
+                    }
+                }
+                
+                return matchesSearch && matchesStatus;
+            });
+
+            // Sort clients
+            filteredClients.sort((a, b) => {
+                switch(sortBy) {
+                    case 'name_asc':
+                        return a.name.localeCompare(b.name);
+                    case 'name_desc':
+                        return b.name.localeCompare(a.name);
+                    case 'date_asc':
+                        return new Date(a.lastModified || 0) - new Date(b.lastModified || 0);
+                    case 'date_desc':
+                        return new Date(b.lastModified || 0) - new Date(a.lastModified || 0);
+                    default:
+                        return 0;
+                }
+            });
+
+            // Render filtered clients without modifying the original array
+            renderFilteredClientList(filteredClients);
+        }
+        
+        // Render filtered client list
+        function renderFilteredClientList(filteredClients) {
+            const container = document.getElementById('clients-container');
+            let noClientsMessage = document.getElementById('no-clients-message');
+
+            // Recréer l'élément no-clients-message s'il n'existe plus
+            if (!noClientsMessage) {
+                noClientsMessage = document.createElement('div');
+                noClientsMessage.id = 'no-clients-message';
+                noClientsMessage.className = 'text-center text-gray-500 py-12 bg-white rounded-2xl shadow-lg border border-gray-100';
+                noClientsMessage.innerHTML = `
+                    <i class="fas fa-folder-minus text-6xl mb-6 text-gray-300"></i>
+                    <h3 class="text-xl font-semibold text-gray-600 mb-2">Aucun dossier client</h3>
+                    <p class="text-gray-500">Aucun dossier client sauvegardé pour le moment.</p>
+                    <p class="text-gray-500">Cliquez sur "Démarrer une nouvelle analyse" pour commencer !</p>
+                `;
+            }
+
+            if (filteredClients.length === 0) {
+                noClientsMessage.classList.remove('hidden');
+                container.innerHTML = '';
+                container.appendChild(noClientsMessage);
+                return;
+            }
+
+            noClientsMessage.classList.add('hidden');
+            
+            let html = '';
+            filteredClients.forEach((client, index) => {
+                const analysisStatus = getAnalysisStatus(client);
+                const lastModified = new Date(client.lastModified || Date.now()).toLocaleDateString('fr-FR');
+                
+                html += `
+                    <div class="client-card bg-white p-6 rounded-2xl shadow-lg border border-gray-100 cursor-pointer" style="animation-delay: ${index * 0.1}s;" onclick="handleClientClick('${client.id}', event)">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center mb-2">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-4">
+                                        <i class="fas fa-user text-white text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold text-gray-800">${client.name}</h3>
+                                    </div>
+                                </div>
+                                <div class="flex items-center text-sm text-gray-500 mb-3">
+                                    <i class="fas fa-clock mr-2"></i>
+                                    <span>Dernière modification: ${lastModified}</span>
+                                </div>
+                                <div class="flex items-center text-sm text-gray-600">
+                                    <i class="fas fa-chart-line mr-2"></i>
+                                    <span class="font-medium">Analyses:</span>
+                                    <span class="ml-1">${client.analyses ? Object.keys(client.analyses).length : 0} flux analysé(s)</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end space-y-3">
+                                <div class="status-badge">
+                                    ${analysisStatus}
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button onclick="editClient('${client.id}')" class="action-btn edit text-blue-600 hover:text-blue-800" title="Éditer">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="viewClient('${client.id}')" class="action-btn view text-green-600 hover:text-green-800" title="Voir le dossier">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button onclick="deleteClient('${client.id}')" class="action-btn delete text-red-600 hover:text-red-800" title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex items-center text-sm text-gray-600">
+                                    <i class="fas fa-calendar-alt mr-2"></i>
+                                    <span>Créé le ${new Date(client.createdAt || Date.now()).toLocaleDateString('fr-FR')}</span>
+                                </div>
+                            </div>
+                            <button onclick="generateReport('${client.id}')" class="btn-modern bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg shadow-md hover:from-blue-700 hover:to-blue-800 text-sm font-semibold">
+                                <i class="fas fa-file-alt mr-2"></i> Générer les rapports
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Client actions
+        function editClient(clientId) {
+            window.location.href = `new-dossier.html?edit=${clientId}`;
+        }
+
+        function viewClient(clientId) {
+            // Check if client is "hors champ"
+            const client = clients.find(c => c.id === clientId);
+            
+            if (client && client.horsChamp === true) {
+                // Redirect to hors-champ page
+                window.location.href = `hors-champ.html?client=${clientId}`;
+                return;
+            }
+            
+            // Check questionnaire completion status
+            const venteStats = getQuestionnaireStats(client, 'vente');
+            const achatStats = getQuestionnaireStats(client, 'achat');
+            
+            const venteComplete = venteStats.answered >= venteStats.total;
+            const achatComplete = achatStats.answered >= achatStats.total;
+            
+            // If questionnaires are incomplete, redirect to wizard
+            if (!venteComplete && !achatComplete) {
+                // Neither complete - go to vente questionnaire first
+                window.location.href = `wizard.html?client=${encodeURIComponent(client.name)}&type=vente`;
+            } else if (!venteComplete) {
+                // Vente incomplete - go to vente questionnaire
+                window.location.href = `wizard.html?client=${encodeURIComponent(client.name)}&type=vente`;
+            } else if (!achatComplete) {
+                // Achat incomplete - go to achat questionnaire
+                window.location.href = `wizard.html?client=${encodeURIComponent(client.name)}&type=achat`;
+            } else {
+                // Both complete - redirect to normal dossier page
+                window.location.href = `dossier.html?client=${clientId}`;
+            }
+        }
+        
+        // Check if questionnaires are complete and redirect accordingly
+        function handleClientClick(clientId, event) {
+            // Prevent click if clicking on action buttons
+            if (event.target.closest('.action-btn') || event.target.closest('button')) {
+                return;
+            }
+            
+            const client = clients.find(c => c.id === clientId);
+            if (!client) return;
+            
+            // Check if client is "hors champ"
+            if (client.horsChamp === true) {
+                window.location.href = `hors-champ.html?client=${clientId}`;
+                return;
+            }
+            
+            // Check if questionnaires are complete
+            const venteStats = getQuestionnaireStats(client, 'vente');
+            const achatStats = getQuestionnaireStats(client, 'achat');
+            
+            const venteComplete = venteStats.answered >= venteStats.total;
+            const achatComplete = achatStats.answered >= achatStats.total;
+            
+            // If questionnaires are incomplete, redirect to wizard
+            if (!venteComplete && !achatComplete) {
+                // Neither complete - go to vente questionnaire first
+                window.location.href = `wizard.html?client=${encodeURIComponent(client.name)}&type=vente`;
+            } else if (!venteComplete) {
+                // Vente incomplete - go to vente questionnaire
+                window.location.href = `wizard.html?client=${encodeURIComponent(client.name)}&type=vente`;
+            } else if (!achatComplete) {
+                // Achat incomplete - go to achat questionnaire
+                window.location.href = `wizard.html?client=${encodeURIComponent(client.name)}&type=achat`;
+            } else {
+                // All complete, go to report selection
+                window.location.href = `report-selection.html?client=${clientId}`;
+            }
+        }
+
+        function deleteClient(clientId) {
+            console.log('Fonction deleteClient appelée avec ID:', clientId);
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce client ?')) {
+                // Convertir les IDs en string pour une comparaison fiable
+                const clientIdStr = String(clientId);
+                
+                // Trouver le client avant suppression pour récupérer son nom
+                const clientToDelete = clients.find(c => String(c.id) === clientIdStr);
+                
+                if (!clientToDelete) {
+                    console.error('Client non trouvé:', clientIdStr);
+                    showNotification('Erreur: Client non trouvé', 'error');
+                    return;
+                }
+                
+                // Supprimer le client de la liste
+                clients = clients.filter(c => String(c.id) !== clientIdStr);
+                localStorage.setItem('clients', JSON.stringify(clients));
+                
+                // Nettoyer les données associées dans localStorage
+                const wizardKeys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('wizard_') && key.includes(clientToDelete.name)) {
+                        wizardKeys.push(key);
+                    }
+                }
+                wizardKeys.forEach(key => localStorage.removeItem(key));
+                
+                console.log(`Données supprimées pour le client: ${clientToDelete.name}`);
+                
+                // Vérifier s'il y a des filtres actifs et actualiser en conséquence
+                const searchTerm = document.getElementById('client-search')?.value || '';
+                const statusFilter = document.getElementById('client-status-filter')?.value || '';
+                
+                if (searchTerm || statusFilter) {
+                    // Si des filtres sont actifs, utiliser filterClientList pour actualiser
+                    filterClientList();
+                } else {
+                    // Sinon, utiliser renderClientList normal
+                    renderClientList();
+                }
+                
+                // Feedback visuel
+                console.log(`Client supprimé: ${clientIdStr}`);
+                console.log(`Clients restants: ${clients.length}`);
+                
+                                 // Notification de succès
+                 showNotification('Client supprimé avec succès', 'success');
+                 
+                 // Réactualiser la page après un court délai
+                 setTimeout(() => {
+                     window.location.reload();
+                 }, 1000);
+            }
+        }
+
+        function generateReport(clientId) {
+            // Check if client is "hors champ"
+            const client = clients.find(c => c.id === clientId);
+            
+            if (client && client.horsChamp === true) {
+                // Redirect to hors-champ page
+                window.location.href = `hors-champ.html?client=${clientId}`;
+            } else {
+                // Redirect to normal report selection
+                window.location.href = `report-selection.html?client=${clientId}`;
+            }
+        }
+
+        // Import functionality
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    console.log('Données importées:', importedData);
+                    console.log('Structure des données:', Object.keys(importedData));
+                    
+                    let importedClientsCount = 0;
+                    let importedKeysCount = 0;
+                    
+                    // Handle new export format with clients and localStorageData
+                    if (importedData.clients) {
+                        console.log('Format d\'export E-Factu détecté');
+                        
+                        // Import clients
+                        if (Array.isArray(importedData.clients)) {
+                            // Éviter les doublons en vérifiant les IDs
+                            const existingIds = new Set(clients.map(c => c.id));
+                            const newClients = importedData.clients.filter(c => !existingIds.has(c.id));
+                            
+                            if (newClients.length > 0) {
+                                clients = [...clients, ...newClients];
+                                localStorage.setItem('clients', JSON.stringify(clients));
+                                importedClientsCount = newClients.length;
+                                console.log(`${newClients.length} nouveaux clients importés (${importedData.clients.length - newClients.length} doublons ignorés)`);
+                            } else {
+                                console.log('Aucun nouveau client à importer (tous des doublons)');
+                            }
+                        }
+                        
+                        // Import localStorage data if present
+                        if (importedData.localStorageData) {
+                            Object.keys(importedData.localStorageData).forEach(key => {
+                                try {
+                                    // Skip 'clients' key as we handle it separately
+                                    if (key === 'clients') return;
+                                    
+                                    const value = importedData.localStorageData[key];
+                                    if (value !== null && value !== undefined) {
+                                        if (typeof value === 'object') {
+                                            localStorage.setItem(key, JSON.stringify(value));
+                                        } else {
+                                            localStorage.setItem(key, String(value));
+                                        }
+                                        importedKeysCount++;
+                                        console.log(`Clé importée: ${key}`);
+                                    }
+                                } catch (error) {
+                                    console.error(`Erreur lors de l'import de ${key}:`, error);
+                                }
+                            });
+                        }
+                        
+                        // Import wizard answers if present (separate from localStorageData)
+                        if (importedData.wizardAnswers) {
+                            Object.keys(importedData.wizardAnswers).forEach(key => {
+                                try {
+                                    const value = importedData.wizardAnswers[key];
+                                    if (value !== null && value !== undefined) {
+                                        localStorage.setItem(key, JSON.stringify(value));
+                                        importedKeysCount++;
+                                        console.log(`Réponses wizard importées: ${key}`);
+                                    }
+                                } catch (error) {
+                                    console.error(`Erreur lors de l'import wizard ${key}:`, error);
+                                }
+                            });
+                        }
+                        
+                        console.log(`${importedKeysCount} clés pertinentes importées`);
+                        
+                        // Show detailed success message
+                        const exportDateStr = importedData.exportDate 
+                            ? new Date(importedData.exportDate).toLocaleDateString('fr-FR') 
+                            : 'Date inconnue';
+                        const successMessage = `Import réussi !\n` +
+                            `- ${importedClientsCount} client(s) importé(s)\n` +
+                            `- ${importedKeysCount} données importées\n` +
+                            `- Export du ${exportDateStr}`;
+                        
+                        showNotification(successMessage, 'success');
+                        
+                    } else if (Array.isArray(importedData)) {
+                        // Handle old format (just clients array)
+                        console.log('Ancien format détecté (array de clients)');
+                        const existingIds = new Set(clients.map(c => c.id));
+                        const newClients = importedData.filter(c => !existingIds.has(c.id));
+                        
+                        if (newClients.length > 0) {
+                            clients = [...clients, ...newClients];
+                            localStorage.setItem('clients', JSON.stringify(clients));
+                            importedClientsCount = newClients.length;
+                        }
+                        showNotification(`${importedClientsCount} client(s) importé(s) avec succès !`, 'success');
+                    } else {
+                        console.error('Format non reconnu:', importedData);
+                        showNotification('Format de fichier invalide.', 'error');
+                        return;
+                    }
+                    
+                    // Refresh the client list
+                    renderClientList();
+                    
+                } catch (error) {
+                    console.error('Erreur lors de l\'importation:', error);
+                    showNotification('Erreur lors de l\'importation du fichier: ' + error.message, 'error');
+                }
+            };
+            
+            reader.onerror = function() {
+                console.error('Erreur de lecture du fichier');
+                showNotification('Erreur de lecture du fichier.', 'error');
+            };
+            
+            reader.readAsText(file);
+            
+            // Reset the input to allow re-importing the same file
+            event.target.value = '';
+        }
+
+        // Export functionality
+        function toggleExportMenu() {
+            const menu = document.getElementById('export-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Close export menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const exportButton = document.querySelector('button[onclick="toggleExportMenu()"]');
+            const exportMenu = document.getElementById('export-menu');
+            
+            if (!exportButton.contains(event.target) && !exportMenu.contains(event.target)) {
+                exportMenu.classList.add('hidden');
+            }
+        });
+
+        function exportAllData(format) {
+            console.log('Début de l\'export des données...');
+            
+            // Define relevant keys for the application
+            const relevantKeys = [
+                'clients',
+                'appSettings'
+            ];
+            
+            // Get all wizard keys
+            const wizardKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('wizard_')) {
+                    wizardKeys.push(key);
+                }
+            }
+            
+            // Show export summary
+            const totalClients = clients.length;
+            const totalWizardKeys = wizardKeys.length;
+            const totalRelevantKeys = relevantKeys.length + wizardKeys.length;
+            
+            const summaryMessage = `Préparation de l'export...\n` +
+                `- ${totalClients} clients\n` +
+                `- ${totalWizardKeys} réponses de questionnaire\n` +
+                `- ${totalRelevantKeys} données applicatives`;
+            
+            showNotification(summaryMessage, 'info');
+            
+            // Collect only relevant data
+            const exportData = {
+                clients: clients,
+                wizardAnswers: {},
+                localStorageData: {},
+                exportDate: new Date().toISOString(),
+                exportInfo: {
+                    totalClients: clients.length,
+                    format: format,
+                    relevantKeys: []
+                }
+            };
+
+            // Collect only relevant data from localStorage
+            const collectedKeys = [];
+            
+            // Collect relevant application keys
+            relevantKeys.forEach(key => {
+                if (localStorage.getItem(key)) {
+                    collectedKeys.push(key);
+                    try {
+                        const value = localStorage.getItem(key);
+                        // Try to parse as JSON, if it fails, store as string
+                        try {
+                            const parsedValue = JSON.parse(value);
+                            exportData.localStorageData[key] = parsedValue;
+                        } catch (parseError) {
+                            // If it's not valid JSON, store as string
+                            exportData.localStorageData[key] = value;
+                        }
+                    } catch (error) {
+                        console.error(`Erreur lors de la récupération de ${key}:`, error);
+                        exportData.localStorageData[key] = null;
+                    }
+                }
+            });
+            
+            // Collect wizard answers
+            wizardKeys.forEach(key => {
+                collectedKeys.push(key);
+                try {
+                    const answers = JSON.parse(localStorage.getItem(key));
+                    exportData.wizardAnswers[key] = answers;
+                    exportData.localStorageData[key] = answers; // Also store in localStorageData for consistency
+                    console.log(`Réponses wizard exportées pour ${key}:`, answers);
+                } catch (error) {
+                    console.error(`Erreur lors du parsing des réponses pour ${key}:`, error);
+                    exportData.wizardAnswers[key] = null;
+                    exportData.localStorageData[key] = null;
+                }
+            });
+            
+            exportData.exportInfo.relevantKeys = collectedKeys;
+            console.log(`Export de ${collectedKeys.length} clés pertinentes:`, collectedKeys);
+
+            // Add metadata about the export
+            exportData.metadata = {
+                exportVersion: '1.0',
+                application: 'E-Factu',
+                totalWizardKeys: Object.keys(exportData.wizardAnswers).length,
+                totalLocalStorageKeys: collectedKeys.length,
+                exportTimestamp: Date.now()
+            };
+
+            console.log('Données d\'export préparées:', exportData);
+
+            if (format === 'json') {
+                exportJSON(exportData);
+            } else if (format === 'csv') {
+                exportCSV(exportData);
+            }
+
+            // Close menu
+            document.getElementById('export-menu').classList.add('hidden');
+        }
+
+        function exportJSON(data) {
+            const jsonString = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `export_e_factu_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showNotification('Export JSON réussi !', 'success');
+        }
+
+        function exportCSV(data) {
+            let csvContent = 'Nom Client,Type d\'analyse,Question,Réponse,Date de création,Dernière modification,Statut\n';
+            
+            // Process each client and their wizard answers
+            data.clients.forEach(client => {
+                const clientName = client.name.replace(/"/g, '""'); // Escape quotes for CSV
+                const createdAt = new Date(client.createdAt || Date.now()).toLocaleDateString('fr-FR');
+                const lastModified = new Date(client.lastModified || Date.now()).toLocaleDateString('fr-FR');
+                const status = client.status || 'en_cours';
+                
+                // Find wizard answers for this client
+                Object.keys(data.wizardAnswers).forEach(key => {
+                    if (key.includes(client.name)) {
+                        const wizardType = key.includes('_vente') ? 'Vente' : key.includes('_achat') ? 'Achat' : 'Inconnu';
+                        const answers = data.wizardAnswers[key];
+                        
+                        if (Array.isArray(answers)) {
+                            answers.forEach((answer, index) => {
+                                if (answer) {
+                                    const questionNumber = index + 1;
+                                    const answerText = answer === 'yes' ? 'Oui' : answer === 'no' ? 'Non' : 'Je ne sais pas';
+                                    csvContent += `"${clientName}","${wizardType}","Question ${questionNumber}","${answerText}","${createdAt}","${lastModified}","${status}"\n`;
+                                }
+                            });
+                        }
+                    }
+                });
+                
+                // If no wizard answers found, add client info only
+                const hasWizardAnswers = Object.keys(data.wizardAnswers).some(key => key.includes(client.name));
+                if (!hasWizardAnswers) {
+                    csvContent += `"${clientName}","Aucune analyse","","","${createdAt}","${lastModified}","${status}"\n`;
+                }
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `export_e_factu_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showNotification('Export CSV réussi !', 'success');
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            let bgColor = 'bg-blue-500';
+            if (type === 'success') {
+                bgColor = 'bg-green-500';
+            } else if (type === 'error') {
+                bgColor = 'bg-red-500';
+            }
+            
+            notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-lg text-white font-semibold transform transition-all duration-300 ${bgColor} max-w-md`;
+            
+            // Handle multi-line messages
+            if (message.includes('\n')) {
+                const lines = message.split('\n');
+                lines.forEach((line, index) => {
+                    if (line.trim()) {
+                        const lineElement = document.createElement('div');
+                        lineElement.textContent = line.trim();
+                        if (index === 0) {
+                            lineElement.className = 'font-bold';
+                        } else {
+                            lineElement.className = 'text-sm opacity-90';
+                        }
+                        notification.appendChild(lineElement);
+                    }
+                });
+            } else {
+                notification.textContent = message;
+            }
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Progress export functions
+        function showProgressExportModal() {
+            document.getElementById('progress-export-modal').classList.remove('hidden');
+        }
+
+        function hideProgressExportModal() {
+            document.getElementById('progress-export-modal').classList.add('hidden');
+            document.getElementById('progress-export-form').reset();
+        }
+
+        // Calculate questionnaire progress
+        function calculateQuestionnaireProgress(client) {
+            const totalQuestionsVente = 27; // Nombre total de questions pour le questionnaire vente
+            const totalQuestionsAchat = 16; // Nombre total de questions pour le questionnaire achat
+            
+            let venteProgress = 0;
+            let achatProgress = 0;
+            
+            // Calculer l'avancement du questionnaire vente
+            if (client.analyses && client.analyses.vente && client.analyses.vente.answers) {
+                const venteAnswers = client.analyses.vente.answers.filter(answer => answer !== null && answer !== undefined && answer !== '');
+                venteProgress = Math.round((venteAnswers.length / totalQuestionsVente) * 100);
+            }
+            
+            // Calculer l'avancement du questionnaire achat
+            if (client.analyses && client.analyses.achat && client.analyses.achat.answers) {
+                const achatAnswers = client.analyses.achat.answers.filter(answer => answer !== null && answer !== undefined && answer !== '');
+                achatProgress = Math.round((achatAnswers.length / totalQuestionsAchat) * 100);
+            }
+            
+            // Vérifier aussi dans localStorage pour les réponses wizard
+            const wizardVenteKey = `wizard_${client.name}_vente`;
+            const wizardAchatKey = `wizard_${client.name}_achat`;
+            
+            try {
+                const venteWizardAnswers = localStorage.getItem(wizardVenteKey);
+                if (venteWizardAnswers) {
+                    const parsedVenteAnswers = JSON.parse(venteWizardAnswers);
+                    if (Array.isArray(parsedVenteAnswers)) {
+                        const validVenteAnswers = parsedVenteAnswers.filter(answer => answer !== null && answer !== undefined && answer !== '');
+                        venteProgress = Math.max(venteProgress, Math.round((validVenteAnswers.length / totalQuestionsVente) * 100));
+                    }
+                }
+                
+                const achatWizardAnswers = localStorage.getItem(wizardAchatKey);
+                if (achatWizardAnswers) {
+                    const parsedAchatAnswers = JSON.parse(achatWizardAnswers);
+                    if (Array.isArray(parsedAchatAnswers)) {
+                        const validAchatAnswers = parsedAchatAnswers.filter(answer => answer !== null && answer !== undefined && answer !== '');
+                        achatProgress = Math.max(achatProgress, Math.round((validAchatAnswers.length / totalQuestionsAchat) * 100));
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur lors du calcul de l\'avancement:', error);
+            }
+            
+            return {
+                vente: Math.min(venteProgress, 100),
+                achat: Math.min(achatProgress, 100)
+            };
+        }
+
+        // Generate progress PDF
+        function generateProgressPDF(firstname, lastname) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Configuration
+            const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
+            const margin = 20;
+            let yPosition = margin;
+            
+            // En-tête
+            doc.setFontSize(20);
+            doc.setFont(undefined, 'bold');
+            doc.text('RAPPORT D\'ÉTAT D\'AVANCEMENT', pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 10;
+            
+            doc.setFontSize(16);
+            doc.text('Questionnaires E-Factu', pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 20;
+            
+            // Informations du rapport
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Généré par : ${firstname} ${lastname}`, margin, yPosition);
+            yPosition += 8;
+            doc.text(`Date : ${new Date().toLocaleDateString('fr-FR')}`, margin, yPosition);
+            yPosition += 8;
+            doc.text(`Heure : ${new Date().toLocaleTimeString('fr-FR')}`, margin, yPosition);
+            yPosition += 20;
+            
+            // Statistiques générales
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('STATISTIQUES GÉNÉRALES', margin, yPosition);
+            yPosition += 15;
+            
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Nombre total de dossiers : ${clients.length}`, margin, yPosition);
+            yPosition += 8;
+            
+            const completedVente = clients.filter(client => {
+                const progress = calculateQuestionnaireProgress(client);
+                return progress.vente === 100;
+            }).length;
+            
+            const completedAchat = clients.filter(client => {
+                const progress = calculateQuestionnaireProgress(client);
+                return progress.achat === 100;
+            }).length;
+            
+            doc.text(`Questionnaires vente complétés : ${completedVente}/${clients.length} (${Math.round((completedVente / clients.length) * 100)}%)`, margin, yPosition);
+            yPosition += 8;
+            doc.text(`Questionnaires achat complétés : ${completedAchat}/${clients.length} (${Math.round((completedAchat / clients.length) * 100)}%)`, margin, yPosition);
+            yPosition += 20;
+            
+            // Détail par client
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('DÉTAIL PAR DOSSIER CLIENT', margin, yPosition);
+            yPosition += 15;
+            
+            // En-têtes du tableau
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('Client', margin, yPosition);
+            doc.text('Vente', margin + 80, yPosition);
+            doc.text('Achat', margin + 120, yPosition);
+            doc.text('Créé le', margin + 160, yPosition);
+            yPosition += 5;
+            
+            // Ligne de séparation
+            doc.line(margin, yPosition, pageWidth - margin, yPosition);
+            yPosition += 10;
+            
+            // Données des clients
+            doc.setFont(undefined, 'normal');
+            clients.forEach((client, index) => {
+                // Vérifier si on a besoin d'une nouvelle page
+                if (yPosition > pageHeight - 30) {
+                    doc.addPage();
+                    yPosition = margin;
+                }
+                
+                const progress = calculateQuestionnaireProgress(client);
+                const createdDate = new Date(client.createdAt || Date.now()).toLocaleDateString('fr-FR');
+                
+                // Nom du client (tronqué si trop long)
+                let clientName = client.name;
+                if (clientName.length > 25) {
+                    clientName = clientName.substring(0, 22) + '...';
+                }
+                
+                doc.text(clientName, margin, yPosition);
+                doc.text(`${progress.vente}%`, margin + 80, yPosition);
+                doc.text(`${progress.achat}%`, margin + 120, yPosition);
+                doc.text(createdDate, margin + 160, yPosition);
+                
+                yPosition += 8;
+            });
+            
+            // Pied de page
+            const totalPages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Page ${i}/${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+                doc.text('E-Factu - Rapport d\'avancement', margin, pageHeight - 10);
+            }
+            
+            // Générer le nom du fichier
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+            const filename = `Rapport_Avancement_${firstname}_${lastname}_${dateStr}_${timeStr}.pdf`;
+            
+            // Télécharger le PDF
+            doc.save(filename);
+            
+            // Notification de succès
+            showNotification(`Rapport PDF généré avec succès !\nFichier : ${filename}`, 'success');
+        }
+
+        // Handle progress export form submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const progressForm = document.getElementById('progress-export-form');
+            if (progressForm) {
+                progressForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const firstname = document.getElementById('user-firstname').value.trim();
+                    const lastname = document.getElementById('user-lastname').value.trim();
+                    
+                    if (!firstname || !lastname) {
+                        showNotification('Veuillez renseigner votre prénom et nom.', 'error');
+                        return;
+                    }
+                    
+                    // Masquer la modal
+                    hideProgressExportModal();
+                    
+                    // Générer le PDF
+                    try {
+                        generateProgressPDF(firstname, lastname);
+                    } catch (error) {
+                        console.error('Erreur lors de la génération du PDF:', error);
+                        showNotification('Erreur lors de la génération du PDF.', 'error');
+                    }
+                });
+            }
+        });
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadClients();
+        });
+    </script>
+</body>
+</html>

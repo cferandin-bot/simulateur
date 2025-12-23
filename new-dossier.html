@@ -1,0 +1,2827 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouveau Dossier Client - E-Factu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+        
+        /* Style pour les questions grisées (non pertinentes) */
+        .question-container {
+            transition: opacity 0.3s ease-out, filter 0.3s ease-out;
+            opacity: 1;
+            filter: none;
+            pointer-events: auto;
+        }
+        
+        .question-container.disabled-question {
+            opacity: 0.4 !important;
+            filter: grayscale(0.5) !important;
+            pointer-events: none !important;
+        }
+        
+        .question-container.disabled-question * {
+            pointer-events: none !important;
+        }
+        
+        /* S'assurer que les questions actives sont toujours visibles - PRIORITÉ MAXIMALE */
+        .question-container:not(.disabled-question) {
+            opacity: 1 !important;
+            filter: none !important;
+            pointer-events: auto !important;
+            visibility: visible !important;
+        }
+        
+        .question-container:not(.disabled-question) * {
+            pointer-events: auto !important;
+        }
+        
+        /* Forcer la visibilité des bubble-options dans les questions actives - PRIORITÉ MAXIMALE */
+        .question-container:not(.disabled-question) .bubble-option,
+        #question-12-container:not(.disabled-question) .bubble-option {
+            opacity: 1 !important;
+            filter: none !important;
+            -webkit-filter: none !important;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            color: inherit !important;
+        }
+        
+        .question-container:not(.disabled-question) .bubble-option *,
+        .question-container:not(.disabled-question) .bubble-option .icon,
+        #question-12-container:not(.disabled-question) .bubble-option *,
+        #question-12-container:not(.disabled-question) .bubble-option .icon {
+            opacity: 1 !important;
+            filter: none !important;
+            -webkit-filter: none !important;
+        }
+        
+        /* Spécifiquement pour Q12 quand elle n'est pas désactivée */
+        #question-12-container:not(.disabled-question) {
+            opacity: 1 !important;
+            filter: none !important;
+            -webkit-filter: none !important;
+        }
+        
+        /* Classe spéciale pour forcer la visibilité de Q12 - PRIORITÉ ABSOLUE */
+        .q12-force-visible,
+        #question-12-container.q12-force-visible {
+            opacity: 1 !important;
+            filter: none !important;
+            -webkit-filter: none !important;
+            pointer-events: auto !important;
+            visibility: visible !important;
+        }
+        
+        .q12-force-visible *,
+        .q12-force-visible .bubble-option,
+        #question-12-container.q12-force-visible * {
+            opacity: 1 !important;
+            filter: none !important;
+            -webkit-filter: none !important;
+            pointer-events: auto !important;
+        }
+        
+        /* Bubble button styles */
+        .bubble-option {
+            display: inline-flex;
+            align-items: center;
+            padding: 12px 20px;
+            margin: 4px;
+            border: 2px solid #e5e7eb;
+            border-radius: 25px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #6b7280;
+        }
+        
+        .bubble-option:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            color: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        }
+        
+        .bubble-option.selected {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+        }
+        
+        .bubble-option.selected:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+        }
+        
+        .bubble-option.selected .icon {
+            color: white !important;
+        }
+        
+        .bubble-option .icon {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+        
+        /* Hide original radio inputs */
+        .bubble-group input[type="radio"] {
+            display: none;
+        }
+        
+        /* Hover effects for buttons */
+        button:hover {
+            transform: translateY(-1px);
+        }
+        
+        /* Focus styles */
+        input:focus, select:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+            border-color: #3b82f6;
+        }
+        
+        /* Tooltip styles */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip {
+            visibility: hidden;
+            width: 300px;
+            background-color: #1f2937;
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            padding: 12px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 14px;
+            line-height: 1.4;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+        }
+        
+        .tooltip-container:hover .tooltip,
+        .tooltip-container:focus .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- New Dossier Screen -->
+    <div id="new-dossier-screen" class="fade-in py-8">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-red-700 to-red-800 text-white rounded-2xl p-8 mb-12 text-center">
+                <h1 class="text-4xl font-bold mb-4">Nouveau dossier client</h1>
+            </div>
+
+            <!-- Form -->
+            <div class="bg-white rounded-2xl shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-8 flex items-center">
+                    <i class="fas fa-user-tie text-red-600 mr-3"></i>
+                    Informations du client
+                </h2>
+
+                <form id="client-form" class="space-y-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-hashtag text-red-600 mr-2"></i>N° de dossier
+                            </label>
+                            <input type="text" id="dossier-num" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Ex: 2025-001">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-building text-red-600 mr-2"></i>Nom du client <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="client-name" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Ex: SARL Dupont" required>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-briefcase text-green-600 mr-2"></i>Activité du client
+                            </label>
+                            <input type="text" id="client-activity" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Ex: Commerce de détail">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-id-card text-red-600 mr-2"></i>N° SIRET/SIREN
+                            </label>
+                            <input type="text" id="client-siret" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Ex: 12345678900011">
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-envelope text-blue-600 mr-2"></i>Email du client
+                            </label>
+                            <input type="email" id="client-email" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Ex: contact@client.fr">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-industry text-purple-600 mr-2"></i>Secteur d'activité
+                            </label>
+                            <input type="text" id="client-sector" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Ex: Services, Industrie, Commerce">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-sticky-note text-yellow-600 mr-2"></i>Notes complémentaires
+                        </label>
+                        <textarea id="client-notes" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Notes ou informations complémentaires sur le client..."></textarea>
+                    </div>
+
+                    <!-- Question 1: Sélection PDP -->
+                    <div id="question-1-container" class="question-container bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-server text-purple-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-purple-800">Question 1 : Le client a-t-il déjà choisi sa PA (plateforme agréée) pour la facture électronique ?</h3>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                &nbsp;
+                            </label>
+                        </div>
+                        
+                        <div class="bubble-group flex flex-wrap gap-3">
+                            <input type="radio" name="pa-selection" id="pa-yes" value="yes" onchange="togglePaName()">
+                            <div class="bubble-option" onclick="selectBubble('pa-yes', 'pa-selection', this)">
+                                <i class="fas fa-check-circle icon text-green-500"></i>
+                                Oui, PA sélectionnée
+                            </div>
+                            
+                            <input type="radio" name="pa-selection" id="pa-no" value="no" onchange="togglePaName()">
+                            <div class="bubble-option" onclick="selectBubble('pa-no', 'pa-selection', this)">
+                                <i class="fas fa-times-circle icon text-red-500"></i>
+                                Non, aucune PA sélectionnée.
+                            </div>
+                        </div>
+                        
+                        <div id="pa-name-container" class="hidden mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-info-circle text-green-600 mr-2"></i>
+                                Nom de la PA sélectionnée
+                            </label>
+                            <input type="text" id="pa-name" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Ex: Docaposte, Cegedim...">
+                        </div>
+                        
+                        <div id="pa-alert" class="hidden mt-6 p-8 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl shadow-lg">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-exclamation-triangle text-yellow-600 text-xl"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="text-lg font-bold text-yellow-800 mb-3 flex items-center">
+                                        <span class="bg-yellow-200 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold mr-3">ACTION REQUISE</span>
+                                        Information importante
+                                    </h4>
+                                    <div class="bg-white p-4 rounded-lg border border-yellow-200">
+                                        <p class="text-yellow-900 text-base leading-relaxed font-medium">
+                                            <strong>Veuillez informer le client</strong> de la nécessité de sélectionner une <strong>PA (Plateforme Agréée)</strong> avant la mise en œuvre de la réforme de la facture électronique.
+                                        </p>
+                                    </div>
+                                    <div class="mt-4 flex items-center text-yellow-700 text-sm">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        <span>Cette étape est cruciale pour la conformité réglementaire</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Question 2: Niveau d'adresse de facturation électronique -->
+                    <div id="question-2-container" class="question-container bg-gradient-to-r from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-map-marker-alt text-indigo-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-indigo-800">Question 2 : Niveau d'adresse de facturation électronique</h3>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                Le niveau de l'adresse de facturation électronique a-t-il été défini ?
+                            </label>
+                        </div>
+                        
+                        <div class="bubble-group flex flex-wrap gap-3">
+                            <input type="radio" name="billing-level" id="billing-company" value="company" onchange="updateQuestionStates()">
+                            <div class="bubble-option" onclick="selectBubble('billing-company', 'billing-level', this)">
+                                <i class="fas fa-building icon text-blue-600"></i>
+                                Niveau Entreprise (SIREN)
+                            </div>
+                            
+                            <input type="radio" name="billing-level" id="billing-establishment" value="establishment" onchange="updateQuestionStates()">
+                            <div class="bubble-option" onclick="selectBubble('billing-establishment', 'billing-level', this)">
+                                <i class="fas fa-store icon text-green-600"></i>
+                                Niveau Établissement (SIRET)
+                            </div>
+                            
+                            <input type="radio" name="billing-level" id="billing-custom" value="custom" onchange="updateQuestionStates()">
+                            <div class="bubble-option" onclick="selectBubble('billing-custom', 'billing-level', this)">
+                                <i class="fas fa-cogs icon text-purple-600"></i>
+                                Niveau Personnalisé (Suffixe)
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 text-sm text-gray-600 space-y-2">
+                            <div class="flex items-start">
+                                <i class="fas fa-info-circle text-blue-600 mr-2 mt-1"></i>
+                                <span><strong>Niveau Entreprise (SIREN) :</strong> Une seule adresse pour toutes les factures reçues.</span>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fas fa-info-circle text-green-600 mr-2 mt-1"></i>
+                                <span><strong>Niveau Établissement (SIRET) :</strong> Une adresse de réception par établissement.</span>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fas fa-info-circle text-purple-600 mr-2 mt-1"></i>
+                                <span><strong>Niveau Personnalisé (Suffixe) :</strong> Des adresses spécifiques par flux métier (ex: achats de production, frais généraux...).</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Question 3: Logiciels utilisés par le client -->
+                    <div id="question-3-container" class="question-container bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-laptop text-green-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-green-800">Question 3 : Logiciels utilisés par le client</h3>
+                        </div>
+                        
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                    <i class="fas fa-cash-register text-green-600 mr-2"></i>
+                                    Logiciel de caisse conforme FE chez le client
+                                </label>
+                                <div class="bubble-group flex flex-wrap">
+                                    <input type="radio" name="caisse" id="caisse-yes" value="yes" onchange="updateQuestionStates()">
+                                    <div class="bubble-option" onclick="selectBubble('caisse-yes', 'caisse', this)">
+                                        <i class="fas fa-check-circle icon text-green-500"></i>
+                                        Oui
+                                    </div>
+                                    
+                                    <input type="radio" name="caisse" id="caisse-no" value="no" onchange="updateQuestionStates()">
+                                    <div class="bubble-option" onclick="selectBubble('caisse-no', 'caisse', this)">
+                                        <i class="fas fa-times-circle icon text-red-500"></i>
+                                        Non
+                                    </div>
+                                    
+                                    <input type="radio" name="caisse" id="caisse-na" value="na" onchange="updateQuestionStates()">
+                                    <div class="bubble-option" onclick="selectBubble('caisse-na', 'caisse', this)">
+                                        <i class="fas fa-minus-circle icon text-gray-500"></i>
+                                        N/A
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                    <i class="fas fa-file-invoice text-blue-600 mr-2"></i>
+                                    Logiciel de facturation conforme FE chez le client
+                                </label>
+                                <div class="bubble-group flex flex-wrap">
+                                    <input type="radio" name="facturation" id="fact-yes" value="yes" onchange="updateQuestionStates()">
+                                    <div class="bubble-option" onclick="selectBubble('fact-yes', 'facturation', this)">
+                                        <i class="fas fa-check-circle icon text-green-500"></i>
+                                        Oui
+                                    </div>
+                                    
+                                    <input type="radio" name="facturation" id="fact-no" value="no" onchange="updateQuestionStates()">
+                                    <div class="bubble-option" onclick="selectBubble('fact-no', 'facturation', this)">
+                                        <i class="fas fa-times-circle icon text-red-500"></i>
+                                        Non
+                                    </div>
+                                    
+                                    <input type="radio" name="facturation" id="fact-na" value="na" onchange="updateQuestionStates()">
+                                    <div class="bubble-option" onclick="selectBubble('fact-na', 'facturation', this)">
+                                        <i class="fas fa-minus-circle icon text-gray-500"></i>
+                                        N/A
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Question 4: Périmètre de la mission du cabinet -->
+                    <div id="question-4-container" class="question-container bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-briefcase text-orange-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-orange-800">Question 4 : Périmètre de la mission du cabinet <span class="text-red-500">*</span></h3>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                Qui sera responsable de la mise en place du projet facture électronique ?
+                            </label>
+                        </div>
+                        
+                        <div class="bubble-group flex flex-wrap">
+                            <input type="radio" name="delegation" id="delegation-cabinet" value="cabinet" onchange="updateQuestionStates()">
+                            <div class="tooltip-container">
+                                <div class="bubble-option" onclick="selectBubble('delegation-cabinet', 'delegation', this)">
+                                    <i class="fas fa-building icon text-blue-600"></i>
+                                    Gestion déléguée au cabinet
+                                </div>
+                                <div class="tooltip">Le cabinet s'occupe de la mise en place du projet facture électronique pour le compte de son client</div>
+                            </div>
+                            
+                            <input type="radio" name="delegation" id="delegation-client" value="client" onchange="updateQuestionStates()">
+                            <div class="tooltip-container">
+                                <div class="bubble-option" onclick="selectBubble('delegation-client', 'delegation', this)">
+                                    <i class="fas fa-user-tie icon text-purple-600"></i>
+                                    Gestion par le client
+                                </div>
+                                <div class="tooltip">Le client s'occupe de la mise en place du projet facture électronique SANS le cabinet</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Question 5: Client assujetti TVA (anciennement Q1) -->
+                    <div id="question-5-container" class="question-container bg-gradient-to-r from-red-50 to-red-50 border-2 border-red-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-building text-red-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-red-800">Question 5 : Votre client est-il assujetti à la TVA ? <span class="text-red-500">*</span></h3>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <p class="text-gray-700 text-sm mb-4 italic">
+                                <i class="fas fa-info-circle text-red-600 mr-2"></i>
+                                Note : Un assujetti TVA est une personne qui effectue une activité économique de manière indépendante (entreprise, profession libérale, etc.)
+                            </p>
+                        </div>
+                        
+                        <div class="bubble-group flex flex-wrap gap-3">
+                            <input type="radio" name="client-assujetti-tva" id="client-assujetti-tva-yes" value="yes" onchange="checkTvaStatus()">
+                            <div class="bubble-option" onclick="selectBubble('client-assujetti-tva-yes', 'client-assujetti-tva', this)">
+                                <i class="fas fa-check-circle icon text-green-500"></i>
+                                OUI
+                            </div>
+                            
+                            <input type="radio" name="client-assujetti-tva" id="client-assujetti-tva-no" value="no" onchange="checkTvaStatus()">
+                            <div class="bubble-option" onclick="selectBubble('client-assujetti-tva-no', 'client-assujetti-tva', this)">
+                                <i class="fas fa-times-circle icon text-red-500"></i>
+                                NON
+                            </div>
+                        </div>
+                        
+                        <!-- Message STOP si NON -->
+                        <div id="tva-stop-message" class="hidden mt-6 p-8 bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-300 rounded-xl shadow-lg">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-stop-circle text-red-600 text-xl"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="text-lg font-bold text-red-800 mb-3 flex items-center">
+                                        <span class="bg-red-200 text-red-800 px-3 py-1 rounded-full text-sm font-semibold mr-3">STOP</span>
+                                        Aucune obligation
+                                    </h4>
+                                    <div class="bg-white p-4 rounded-lg border border-red-200 mb-4">
+                                        <p class="text-red-900 text-base leading-relaxed font-medium">
+                                            Votre client n'est <strong>pas assujetti à la TVA</strong>. Il est donc <strong>hors champ de la réforme</strong> de la facture électronique. Aucune obligation ne s'applique.
+                                        </p>
+                                    </div>
+                                    <div class="flex justify-center">
+                                        <button type="button" onclick="saveAndFinishHorsChampTVA()" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-lg font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center">
+                                            <i class="fas fa-check-circle mr-3"></i>
+                                            Sauvegarder et terminer le dossier
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Masquer le reste du formulaire si NON -->
+                        <div id="form-content-after-tva" class="mt-8">
+
+                    <!-- Question 6: Client établi en France (anciennement Q2) -->
+                    <div id="question-6-container" class="question-container bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-map-marker-alt text-green-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-green-800">Question 6 : Votre client est-il établi en France (dispose d'un numéro SIREN) ? <span class="text-red-500">*</span></h3>
+                        </div>
+                        
+                        <div class="bubble-group flex flex-wrap gap-3">
+                            <input type="radio" name="client-etabli-france-siren" id="client-etabli-france-yes" value="yes" onchange="checkFranceStatus()">
+                            <div class="bubble-option" onclick="selectBubble('client-etabli-france-yes', 'client-etabli-france-siren', this)">
+                                <i class="fas fa-check-circle icon text-green-500"></i>
+                                OUI
+                            </div>
+                            
+                            <input type="radio" name="client-etabli-france-siren" id="client-etabli-france-no" value="no" onchange="checkFranceStatus()">
+                            <div class="bubble-option" onclick="selectBubble('client-etabli-france-no', 'client-etabli-france-siren', this)">
+                                <i class="fas fa-times-circle icon text-red-500"></i>
+                                NON
+                            </div>
+                        </div>
+                        
+                        <!-- Message STOP si NON -->
+                        <div id="france-stop-message" class="hidden mt-6 p-8 bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-300 rounded-xl shadow-lg">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-stop-circle text-red-600 text-xl"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="text-lg font-bold text-red-800 mb-3 flex items-center">
+                                        <span class="bg-red-200 text-red-800 px-3 py-1 rounded-full text-sm font-semibold mr-3">STOP</span>
+                                        Pas d'obligation en France
+                                    </h4>
+                                    <div class="bg-white p-4 rounded-lg border border-red-200 mb-4">
+                                        <p class="text-red-900 text-base leading-relaxed font-medium">
+                                            Votre client n'est <strong>pas établi en France</strong>. Il n'y a donc <strong>pas d'obligation en France</strong> pour la réforme de la facture électronique.
+                                        </p>
+                                    </div>
+                                    <div class="flex justify-center">
+                                        <button type="button" onclick="saveAndFinishHorsChampFrance()" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-lg font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center">
+                                            <i class="fas fa-check-circle mr-3"></i>
+                                            Sauvegarder et terminer le dossier
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Masquer le reste du formulaire si NON -->
+                        <div id="form-content-after-france" class="mt-8">
+
+                    <!-- Question 7: Statut TVA du client (anciennement Q3) -->
+                    <div id="question-7-statut-container" class="question-container bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-file-invoice-dollar text-purple-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-purple-800">Question 7 : Quel est le statut TVA de votre client ? <span class="text-red-500">*</span></h3>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <p class="text-gray-700 text-sm mb-4 italic">
+                                <i class="fas fa-info-circle text-purple-600 mr-2"></i>
+                                Note : Les assujettis non-redevables sont ceux qui réalisent EXCLUSIVEMENT des opérations exonérées (santé, enseignement, associations, etc.)
+                            </p>
+                        </div>
+                        
+                        <div class="bubble-group flex flex-wrap gap-3">
+                            <input type="radio" name="statut-tva-client" id="statut-tva-total" value="redevable-total" onchange="checkStatutTva()">
+                            <div class="bubble-option" onclick="selectBubble('statut-tva-total', 'statut-tva-client', this)">
+                                <i class="fas fa-check-circle icon text-red-500"></i>
+                                Redevable total (collecte et paie la TVA) → Q8, Q9, Q10
+                            </div>
+                            
+                            <input type="radio" name="statut-tva-client" id="statut-tva-partiel" value="redevable-partiel" onchange="checkStatutTva()">
+                            <div class="bubble-option" onclick="selectBubble('statut-tva-partiel', 'statut-tva-client', this)">
+                                <i class="fas fa-check-circle icon text-green-500"></i>
+                                Redevable partiel (certaines opérations imposables) → Q8, Q9, Q10
+                            </div>
+                            
+                            <input type="radio" name="statut-tva-client" id="statut-tva-non-redevable" value="non-redevable" onchange="checkStatutTva()">
+                            <div class="bubble-option" onclick="selectBubble('statut-tva-non-redevable', 'statut-tva-client', this)">
+                                <i class="fas fa-check-circle icon text-orange-500"></i>
+                                Non-redevable (100% opérations exonérées art. 261-261E) → Réception uniquement → Q8 et Q9
+                            </div>
+                            
+                            <input type="radio" name="statut-tva-client" id="statut-tva-franchise" value="franchise-base" onchange="checkStatutTva()">
+                            <div class="bubble-option" onclick="selectBubble('statut-tva-franchise', 'statut-tva-client', this)">
+                                <i class="fas fa-check-circle icon text-purple-500"></i>
+                                Franchise en base (art. 293B) → Q8, Q9, Q10
+                            </div>
+                        </div>
+                        
+                        <!-- Message pour non-redevable - maintenant masqué, on affiche directement Q12 -->
+                        <div id="non-redevable-message" class="hidden mt-6 p-8 bg-gradient-to-r from-red-50 to-red-50 border-2 border-red-300 rounded-xl shadow-lg">
+                            <!-- Ce message est maintenant masqué, la question 12 s'affiche directement -->
+                        </div>
+                        
+                        <!-- Question 8: Réception factures fournisseurs (pertinent pour TOUS : redevables ET non-redevables) -->
+                    <div id="question-8-container" class="question-container bg-gradient-to-r from-pink-50 to-rose-50 border-2 border-pink-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-inbox text-pink-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-pink-800">Question 8 : Votre client reçoit-il des factures de fournisseurs assujettis établis en France ? <span class="text-red-500">*</span></h3>
+                        </div>
+                        
+                        <div class="bubble-group flex flex-wrap gap-3">
+                            <input type="radio" name="reception-factures-fournisseurs" id="reception-fournisseurs-yes" value="yes" onchange="checkReceptionFournisseurs()">
+                            <div class="bubble-option" onclick="selectBubble('reception-fournisseurs-yes', 'reception-factures-fournisseurs', this)">
+                                <i class="fas fa-check-circle icon text-green-500"></i>
+                                OUI → ✅ Obligation de RÉCEPTION e-invoicing
+                            </div>
+                            
+                            <input type="radio" name="reception-factures-fournisseurs" id="reception-fournisseurs-no" value="no" onchange="checkReceptionFournisseurs()">
+                            <div class="bubble-option" onclick="selectBubble('reception-fournisseurs-no', 'reception-factures-fournisseurs', this)">
+                                <i class="fas fa-times-circle icon text-red-500"></i>
+                                NON
+                            </div>
+                        </div>
+                        
+                        <!-- Message pour OUI (obligation réception) -->
+                        <div id="q8-reception-obligation-message" class="hidden mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl shadow-lg">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-exclamation-circle text-green-600 text-lg"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="text-lg font-bold text-green-800 mb-3 flex items-center">
+                                        <span class="bg-green-200 text-green-800 px-3 py-1 rounded-full text-sm font-semibold mr-3">OBLIGATION</span>
+                                        Obligation de RÉCEPTION e-invoicing
+                                    </h4>
+                                    <div class="bg-white p-4 rounded-lg border border-green-200">
+                                        <p class="text-green-900 text-base leading-relaxed font-medium">
+                                            Votre client <strong>reçoit des factures de fournisseurs assujettis établis en France</strong>. Il a donc l'<strong>obligation de réception</strong> de factures électroniques via une plateforme agréée.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Question 9: Acquisitions UE et Importations (pertinent pour TOUS : redevables ET non-redevables) -->
+                    <div id="question-9-container" class="question-container bg-gradient-to-r from-violet-50 to-purple-50 border-2 border-violet-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-violet-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-globe-europe text-violet-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-violet-800">Question 9 : Votre client effectue-t-il des acquisitions UE ou des importations ? <span class="text-red-500">*</span></h3>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <!-- Acquisitions intracommunautaires -->
+                            <div class="flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-violet-300 transition-all">
+                                <input type="checkbox" id="acquisitions-intracommunautaires" name="acquisitions-importations[]" value="acquisitions-intracommunautaires" class="mt-1 mr-3 w-5 h-5 text-violet-600 border-gray-300 rounded focus:ring-violet-500" onchange="checkAcquisitionsImportations()">
+                                <label for="acquisitions-intracommunautaires" class="flex-1 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-truck text-blue-600 mr-3"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-800">Acquisitions intracommunautaires</span>
+                                            <span class="ml-2 text-green-600 font-bold">→ ✅ E-REPORTING acquisitions</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <!-- Importations avec autoliquidation -->
+                            <div class="flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-violet-300 transition-all">
+                                <input type="checkbox" id="importations-autoliquidation" name="acquisitions-importations[]" value="importations-autoliquidation" class="mt-1 mr-3 w-5 h-5 text-violet-600 border-gray-300 rounded focus:ring-violet-500" onchange="checkAcquisitionsImportations()">
+                                <label for="importations-autoliquidation" class="flex-1 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-ship text-indigo-600 mr-3"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-800">Importations avec autoliquidation</span>
+                                            <span class="ml-2 text-green-600 font-bold">→ ✅ E-REPORTING importations</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <!-- Non -->
+                            <div class="flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-violet-300 transition-all">
+                                <input type="checkbox" id="acquisitions-importations-non" name="acquisitions-importations[]" value="non" class="mt-1 mr-3 w-5 h-5 text-violet-600 border-gray-300 rounded focus:ring-violet-500" onchange="checkAcquisitionsImportations()">
+                                <label for="acquisitions-importations-non" class="flex-1 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-times-circle text-gray-600 mr-3"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-800">Non</span>
+                                            <span class="ml-2 text-gray-600 text-sm">→ Pas d'obligation supplémentaire</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Résultat des obligations E-REPORTING acquisitions/importations -->
+                        <div id="q9-ereporting-result" class="hidden mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <h4 class="font-bold text-blue-800 mb-2 flex items-center">
+                                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                                Obligations E-REPORTING identifiées
+                            </h4>
+                            <div id="q9-ereporting-content" class="space-y-2"></div>
+                        </div>
+                    </div>
+
+                        <!-- Contenu pour les redevables (Q10 à Q13) -->
+                        <div id="form-content-redevable" class="mt-8">
+
+                    <!-- Question 10: Client émet factures en France (anciennement Q8) -->
+                    <div id="question-10-container" class="question-container bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-file-invoice text-blue-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-blue-800">Question 10 : [Si redevable ou franchise] Votre client émet-il des factures à des clients EN FRANCE ? <span class="text-red-500">*</span></h3>
+                        </div>
+                        
+                        <div class="bubble-group flex flex-wrap gap-3">
+                            <input type="radio" name="client-emet-factures-france" id="emets-france-yes" value="yes" onchange="checkEmetFranceStatus()">
+                            <div class="bubble-option" onclick="selectBubble('emets-france-yes', 'client-emet-factures-france', this)">
+                                <i class="fas fa-check-circle icon text-green-500"></i>
+                                OUI → Continuer à Q11
+                            </div>
+                            
+                            <input type="radio" name="client-emet-factures-france" id="emets-france-no" value="no" onchange="checkEmetFranceStatus()">
+                            <div class="bubble-option" onclick="selectBubble('emets-france-no', 'client-emet-factures-france', this)">
+                                <i class="fas fa-times-circle icon text-red-500"></i>
+                                NON → Aller à Q13 (e-reporting international uniquement)
+                            </div>
+                        </div>
+                        
+                        <!-- Contenu Q11-Q12 si OUI -->
+                        <div id="form-content-q11-q12" class="mt-8">
+
+                    <!-- Question 11: Types de clients EN FRANCE (anciennement Q9) -->
+                    <div id="question-11-types-container" class="question-container bg-gradient-to-r from-teal-50 to-cyan-50 border-2 border-teal-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-users text-teal-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-teal-800">Question 11 : Types de clients EN FRANCE <span class="text-red-500">*</span></h3>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <p class="text-gray-700 text-sm mb-4 italic">
+                                <i class="fas fa-info-circle text-teal-600 mr-2"></i>
+                                <strong>Cocher tout ce qui s'applique</strong>
+                            </p>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <!-- Entreprises assujetties TVA -->
+                            <div class="flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-teal-300 transition-all">
+                                <input type="checkbox" id="client-type-entreprises-tva" name="client-types-france[]" value="entreprises-tva" class="mt-1 mr-3 w-5 h-5 text-teal-600 border-gray-300 rounded focus:ring-teal-500" onchange="checkClientTypes()">
+                                <label for="client-type-entreprises-tva" class="flex-1 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-building text-blue-600 mr-3"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-800">Entreprises assujetties TVA</span>
+                                            <span class="ml-2 text-green-600 font-bold">→ ✅ E-INVOICING obligatoire</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <!-- Administrations publiques -->
+                            <div class="flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-teal-300 transition-all">
+                                <input type="checkbox" id="client-type-administrations" name="client-types-france[]" value="administrations" class="mt-1 mr-3 w-5 h-5 text-teal-600 border-gray-300 rounded focus:ring-teal-500" onchange="checkClientTypes()">
+                                <label for="client-type-administrations" class="flex-1 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-landmark text-purple-600 mr-3"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-800">Administrations publiques</span>
+                                            <span class="ml-2 text-green-600 font-bold">→ ✅ E-INVOICING obligatoire (Chorus Pro)</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <!-- Particuliers/Consommateurs -->
+                            <div class="flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-teal-300 transition-all">
+                                <input type="checkbox" id="client-type-particuliers" name="client-types-france[]" value="particuliers" class="mt-1 mr-3 w-5 h-5 text-teal-600 border-gray-300 rounded focus:ring-teal-500" onchange="checkClientTypes()">
+                                <label for="client-type-particuliers" class="flex-1 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-user text-orange-600 mr-3"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-800">Particuliers/Consommateurs</span>
+                                            <span class="ml-2 text-green-600 font-bold">→ ✅ E-REPORTING B2C obligatoire</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <!-- Associations non assujetties -->
+                            <div class="flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-teal-300 transition-all">
+                                <input type="checkbox" id="client-type-associations" name="client-types-france[]" value="associations" class="mt-1 mr-3 w-5 h-5 text-teal-600 border-gray-300 rounded focus:ring-teal-500" onchange="checkClientTypes()">
+                                <label for="client-type-associations" class="flex-1 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-hands-helping text-red-600 mr-3"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-800">Associations non assujetties</span>
+                                            <span class="ml-2 text-green-600 font-bold">→ ✅ E-REPORTING B2C obligatoire</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Résultat des obligations calculées -->
+                        <div id="q11-obligations-result" class="hidden mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <h4 class="font-bold text-blue-800 mb-2 flex items-center">
+                                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                                Obligations identifiées
+                            </h4>
+                            <div id="q11-obligations-content" class="space-y-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Question 12: Nature de vos opérations (anciennement Q10) -->
+                    <div id="question-12-container" class="question-container bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-boxes text-amber-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-amber-800">Question 12 : Nature de vos opérations <span class="text-red-500">*</span></h3>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <!-- Livraisons de biens uniquement -->
+                            <div class="flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-amber-300 transition-all">
+                                <input type="checkbox" id="nature-biens-uniquement" name="nature-operations[]" value="biens-uniquement" class="mt-1 mr-3 w-5 h-5 text-amber-600 border-gray-300 rounded focus:ring-amber-500" onchange="checkNatureOperations()">
+                                <label for="nature-biens-uniquement" class="flex-1 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-box text-green-600 mr-3"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-800">Livraisons de biens uniquement</span>
+                                            <span class="ml-2 text-gray-600 text-sm">→ Pas de flux de paiement</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <!-- Prestations de services -->
+                            <div class="flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-amber-300 transition-all">
+                                <input type="checkbox" id="nature-prestations-services" name="nature-operations[]" value="prestations-services" class="mt-1 mr-3 w-5 h-5 text-amber-600 border-gray-300 rounded focus:ring-amber-500" onchange="checkNatureOperations()">
+                                <label for="nature-prestations-services" class="flex-1 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-concierge-bell text-blue-600 mr-3"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-800">Prestations de services</span>
+                                            <span class="ml-2 text-blue-600 font-semibold">→ Q12bis</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <!-- Mixte (biens + services) -->
+                            <div class="flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-amber-300 transition-all">
+                                <input type="checkbox" id="nature-mixte" name="nature-operations[]" value="mixte" class="mt-1 mr-3 w-5 h-5 text-amber-600 border-gray-300 rounded focus:ring-amber-500" onchange="checkNatureOperations()">
+                                <label for="nature-mixte" class="flex-1 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-layer-group text-purple-600 mr-3"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-800">Mixte (biens + services)</span>
+                                            <span class="ml-2 text-blue-600 font-semibold">→ Q12bis pour la partie services</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Contenu Q12bis si prestations ou mixte -->
+                        <div id="form-content-q12bis" class="hidden mt-6">
+                            <!-- Question 12bis: Option pour la TVA sur les débits (anciennement Q10bis) -->
+                            <div id="question-12bis-container" class="question-container bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                                <div class="flex items-center mb-4">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                                        <i class="fas fa-percentage text-blue-600 text-lg"></i>
+                                    </div>
+                                    <h3 class="text-xl font-bold text-blue-800">Question 12bis : [Si services] Option pour la TVA sur les débits ? <span class="text-red-500">*</span></h3>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <p class="text-gray-700 text-sm mb-4 italic">
+                                        <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                                        Cette question concerne les prestations de services. Si vous avez opté pour la TVA sur les débits, le flux de paiement n'est pas nécessaire.
+                                    </p>
+                                </div>
+                                
+                                <div class="bubble-group flex flex-wrap gap-3">
+                                    <input type="radio" name="option-tva-debits" id="option-tva-debits-yes" value="yes" onchange="checkOptionTvaDebits()">
+                                    <div class="bubble-option" onclick="selectBubble('option-tva-debits-yes', 'option-tva-debits', this)">
+                                        <i class="fas fa-check-circle icon text-green-500"></i>
+                                        OUI → Pas de flux de paiement
+                                    </div>
+                                    
+                                    <input type="radio" name="option-tva-debits" id="option-tva-debits-no" value="no" onchange="checkOptionTvaDebits()">
+                                    <div class="bubble-option" onclick="selectBubble('option-tva-debits-no', 'option-tva-debits', this)">
+                                        <i class="fas fa-times-circle icon text-red-500"></i>
+                                        NON → ✅ E-REPORTING des encaissements obligatoire
+                                    </div>
+                                </div>
+                                
+                                <!-- Message pour NON (E-REPORTING obligatoire) -->
+                                <div id="q12bis-ereporting-message" class="hidden mt-6 p-6 bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-300 rounded-xl shadow-lg">
+                                    <div class="flex items-start">
+                                        <div class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                                            <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h4 class="text-lg font-bold text-red-800 mb-3 flex items-center">
+                                                <span class="bg-red-200 text-red-800 px-3 py-1 rounded-full text-sm font-semibold mr-3">OBLIGATION</span>
+                                                E-REPORTING des encaissements obligatoire
+                                            </h4>
+                                            <div class="bg-white p-4 rounded-lg border border-red-200">
+                                                <p class="text-red-900 text-base leading-relaxed font-medium">
+                                                    Vous n'avez <strong>pas opté pour la TVA sur les débits</strong>. Vous devez donc déclarer les <strong>encaissements</strong> via l'E-REPORTING.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> <!-- Fin de form-content-q12bis -->
+                    </div>
+
+                    <!-- Question 13: Clients à l'étranger (anciennement Q11) -->
+                    <div id="question-13-etranger-container" class="question-container bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-xl p-6 mb-8 transition-all duration-500">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-globe text-orange-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-orange-800">Question 13 : Votre client a-t-il des clients À L'ÉTRANGER ? <span class="text-red-500">*</span></h3>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <p class="text-gray-700 text-sm mb-4 italic">
+                                <i class="fas fa-info-circle text-orange-600 mr-2"></i>
+                                Votre client n'émet pas de factures à des clients en France. Cette question concerne uniquement l'E-REPORTING international.
+                            </p>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <!-- Entreprises (UE ou hors UE) -->
+                            <div class="flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-orange-300 transition-all">
+                                <input type="checkbox" id="clients-etranger-entreprises" name="clients-etranger[]" value="entreprises" class="mt-1 mr-3 w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500" onchange="checkClientsEtranger()">
+                                <label for="clients-etranger-entreprises" class="flex-1 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-building text-blue-600 mr-3"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-800">Entreprises (UE ou hors UE)</span>
+                                            <span class="ml-2 text-green-600 font-bold">→ ✅ E-REPORTING B2B International</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <!-- Particuliers (si TVA française) -->
+                            <div class="flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-orange-300 transition-all">
+                                <input type="checkbox" id="clients-etranger-particuliers" name="clients-etranger[]" value="particuliers" class="mt-1 mr-3 w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500" onchange="checkClientsEtranger()">
+                                <label for="clients-etranger-particuliers" class="flex-1 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-user text-orange-600 mr-3"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-800">Particuliers (si TVA française)</span>
+                                            <span class="ml-2 text-green-600 font-bold">→ ✅ E-REPORTING B2C International</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <!-- Non -->
+                            <div class="flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-orange-300 transition-all">
+                                <input type="checkbox" id="clients-etranger-non" name="clients-etranger[]" value="non" class="mt-1 mr-3 w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500" onchange="checkClientsEtranger()">
+                                <label for="clients-etranger-non" class="flex-1 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-times-circle text-gray-600 mr-3"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-800">Non</span>
+                                            <span class="ml-2 text-gray-600 text-sm">→ Pas d'e-reporting international</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Résultat des obligations E-REPORTING international -->
+                        <div id="q13-etranger-ereporting-result" class="hidden mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <h4 class="font-bold text-blue-800 mb-2 flex items-center">
+                                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                                Obligations E-REPORTING International identifiées
+                            </h4>
+                            <div id="q13-etranger-ereporting-content" class="space-y-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Sections masquées : Logiciels utilisés, Périmètre, Questions E-INVOICING -->
+                    <div style="display: none;">
+                    <!-- Software Usage -->
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6 mb-8">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-laptop text-green-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-green-800">Logiciels utilisés par le client</h3>
+                        </div>
+                        
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                    <i class="fas fa-cash-register text-green-600 mr-2"></i>
+                                    Logiciel de caisse conforme FE chez le client
+                                </label>
+                                <div class="bubble-group flex flex-wrap">
+                                    <input type="radio" name="caisse" id="caisse-yes" value="yes">
+                                    <div class="bubble-option" onclick="selectBubble('caisse-yes', 'caisse', this)">
+                                        <i class="fas fa-check-circle icon text-green-500"></i>
+                                        Oui
+                                    </div>
+                                    
+                                    <input type="radio" name="caisse" id="caisse-no" value="no">
+                                    <div class="bubble-option" onclick="selectBubble('caisse-no', 'caisse', this)">
+                                        <i class="fas fa-times-circle icon text-red-500"></i>
+                                        Non
+                                    </div>
+                                    
+                                    <input type="radio" name="caisse" id="caisse-na" value="na">
+                                    <div class="bubble-option" onclick="selectBubble('caisse-na', 'caisse', this)">
+                                        <i class="fas fa-minus-circle icon text-gray-500"></i>
+                                        N/A
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                    <i class="fas fa-file-invoice text-blue-600 mr-2"></i>
+                                    Logiciel de facturation conforme FE chez le client
+                                </label>
+                                <div class="bubble-group flex flex-wrap">
+                                    <input type="radio" name="facturation" id="fact-yes" value="yes">
+                                    <div class="bubble-option" onclick="selectBubble('fact-yes', 'facturation', this)">
+                                        <i class="fas fa-check-circle icon text-green-500"></i>
+                                        Oui
+                                    </div>
+                                    
+                                    <input type="radio" name="facturation" id="fact-no" value="no">
+                                    <div class="bubble-option" onclick="selectBubble('fact-no', 'facturation', this)">
+                                        <i class="fas fa-times-circle icon text-red-500"></i>
+                                        Non
+                                    </div>
+                                    
+                                    <input type="radio" name="facturation" id="fact-na" value="na">
+                                    <div class="bubble-option" onclick="selectBubble('fact-na', 'facturation', this)">
+                                        <i class="fas fa-minus-circle icon text-gray-500"></i>
+                                        N/A
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mission Scope -->
+                    <div class="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl p-6 mb-8">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-briefcase text-orange-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-orange-800">Périmètre de la mission du cabinet <span class="text-red-500">*</span></h3>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                Qui sera responsable de la mise en place du projet facture électronique ?
+                            </label>
+                        </div>
+                        
+                        <div class="bubble-group flex flex-wrap">
+                            <input type="radio" name="delegation" id="delegation-cabinet" value="cabinet">
+                            <div class="tooltip-container">
+                                <div class="bubble-option" onclick="selectBubble('delegation-cabinet', 'delegation', this)">
+                                    <i class="fas fa-building icon text-blue-600"></i>
+                                    Gestion déléguée au cabinet
+                                </div>
+                                <div class="tooltip">Le cabinet s'occupe de la mise en place du projet facture électronique pour le compte de son client</div>
+                            </div>
+                            
+                            <input type="radio" name="delegation" id="delegation-client" value="client">
+                            <div class="tooltip-container">
+                                <div class="bubble-option" onclick="selectBubble('delegation-client', 'delegation', this)">
+                                    <i class="fas fa-user-tie icon text-purple-600"></i>
+                                    Gestion par le client
+                                </div>
+                                <div class="tooltip">Le client s'occupe de la mise en place du projet facture électronique SANS le cabinet</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- E-INVOICING Obligation Check -->
+                    <div class="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 rounded-xl p-6 mb-8">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-red-800">Questions obligatoires sur l'E-INVOICING/E-REPORTING <span class="text-red-500">*</span></h3>
+                        </div>
+                        
+                                                 <div class="mb-4">
+                             <p class="text-gray-700 text-sm mb-4">
+                                 <i class="fas fa-info-circle text-red-600 mr-2"></i>
+                                 Ces questions permettent de déterminer si votre client est soumis aux obligations d'E-INVOICING (facture électronique) et d'E-REPORTING (déclaration des transactions).
+                             </p>
+                         </div>
+
+                        <!-- Question 1: Vendeur assujetti TVA -->
+                        <div class="mb-6 p-4 bg-white rounded-lg border border-gray-200">
+                            <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                <i class="fas fa-building text-blue-600 mr-2"></i>
+                                Question 1 : êtes-vous assujetti à la TVA (en tant que vendeur) ?
+                            </label>
+                            <div class="bubble-group flex flex-wrap gap-3">
+                                <input type="radio" name="vendeur-assujetti-tva" id="vendeur-tva-yes" value="yes">
+                                <div class="bubble-option" onclick="selectBubble('vendeur-tva-yes', 'vendeur-assujetti-tva', this)">
+                                    <i class="fas fa-check-circle icon text-green-500"></i>
+                                    Oui
+                                </div>
+                                <input type="radio" name="vendeur-assujetti-tva" id="vendeur-tva-no" value="no">
+                                <div class="bubble-option" onclick="selectBubble('vendeur-tva-no', 'vendeur-assujetti-tva', this)">
+                                    <i class="fas fa-times-circle icon text-red-500"></i>
+                                    Non
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Question 2: Vendeur établi en France -->
+                        <div class="mb-6 p-4 bg-white rounded-lg border border-gray-200">
+                            <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                <i class="fas fa-map-marker-alt text-green-600 mr-2"></i>
+                                Question 2 : êtes-vous établi en France (si vous disposez d'un SIREN) ?
+                            </label>
+                            <div class="bubble-group flex flex-wrap gap-3">
+                                <input type="radio" name="vendeur-etabli-france" id="vendeur-france-yes" value="yes">
+                                <div class="bubble-option" onclick="selectBubble('vendeur-france-yes', 'vendeur-etabli-france', this)">
+                                    <i class="fas fa-check-circle icon text-green-500"></i>
+                                    Oui
+                                </div>
+                                <input type="radio" name="vendeur-etabli-france" id="vendeur-france-no" value="no">
+                                <div class="bubble-option" onclick="selectBubble('vendeur-france-no', 'vendeur-etabli-france', this)">
+                                    <i class="fas fa-times-circle icon text-red-500"></i>
+                                    Non
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Question 3: Client assujetti TVA ou administration -->
+                        <div class="mb-6 p-4 bg-white rounded-lg border border-gray-200">
+                            <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                <i class="fas fa-id-card text-purple-600 mr-2"></i>
+                                Question 3 : le client final de l'entreprise est-il un assujetti à la TVA ou une administration publique ?
+                            </label>
+                            <div class="bubble-group flex flex-wrap gap-3">
+                                <input type="radio" name="client-assujetti-admin" id="client-assujetti-yes" value="yes">
+                                <div class="bubble-option" onclick="selectBubble('client-assujetti-yes', 'client-assujetti-admin', this)">
+                                    <i class="fas fa-check-circle icon text-green-500"></i>
+                                    Oui
+                                </div>
+                                <input type="radio" name="client-assujetti-admin" id="client-assujetti-no" value="no">
+                                <div class="bubble-option" onclick="selectBubble('client-assujetti-no', 'client-assujetti-admin', this)">
+                                    <i class="fas fa-times-circle icon text-red-500"></i>
+                                    Non
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Question 4: Client particulier -->
+                        <div class="mb-6 p-4 bg-white rounded-lg border border-gray-200">
+                            <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                <i class="fas fa-user text-orange-600 mr-2"></i>
+                                Question 4 : le client final de l'entreprise est-il un particulier/consommateur final ?
+                            </label>
+                            <div class="bubble-group flex flex-wrap gap-3">
+                                <input type="radio" name="client-particulier" id="client-particulier-yes" value="yes">
+                                <div class="bubble-option" onclick="selectBubble('client-particulier-yes', 'client-particulier', this)">
+                                    <i class="fas fa-check-circle icon text-green-500"></i>
+                                    Oui
+                                </div>
+                                <input type="radio" name="client-particulier" id="client-particulier-no" value="no">
+                                <div class="bubble-option" onclick="selectBubble('client-particulier-no', 'client-particulier', this)">
+                                    <i class="fas fa-times-circle icon text-red-500"></i>
+                                    Non
+                                </div>
+                            </div>
+                        </div>
+
+                                                 <!-- Question 5: Client établi en France -->
+                         <div class="mb-6 p-4 bg-white rounded-lg border border-gray-200">
+                             <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                 <i class="fas fa-flag text-blue-600 mr-2"></i>
+                                 Question 5 : le client final de l'entreprise est-il établi en France ou à l'étranger ?
+                             </label>
+                             <div class="bubble-group flex flex-wrap gap-3">
+                                 <input type="radio" name="client-etabli-france" id="client-france-yes" value="yes">
+                                 <div class="bubble-option" onclick="selectBubble('client-france-yes', 'client-etabli-france', this)">
+                                     <i class="fas fa-check-circle icon text-green-500"></i>
+                                     En France
+                                 </div>
+                                 <input type="radio" name="client-etabli-france" id="client-france-no" value="no">
+                                 <div class="bubble-option" onclick="selectBubble('client-france-no', 'client-etabli-france', this)">
+                                     <i class="fas fa-times-circle icon text-red-500"></i>
+                                     À l'étranger
+                                 </div>
+                             </div>
+                         </div>
+
+                                                   <!-- Question 6: Prestations de services sans débits -->
+                          <div class="mb-6 p-4 bg-white rounded-lg border border-gray-200">
+                              <label class="block text-lg font-semibold text-gray-800 mb-4">
+                                  <i class="fas fa-handshake text-orange-600 mr-2"></i>
+                                  Question 6 : encaissez-vous des prestations de services sans avoir opté pour les débits ?
+                              </label>
+                              <div class="bubble-group flex flex-wrap gap-3">
+                                  <input type="radio" name="prestations-sans-debits" id="prestations-sans-debits-yes" value="yes">
+                                  <div class="bubble-option" onclick="selectBubble('prestations-sans-debits-yes', 'prestations-sans-debits', this)">
+                                      <i class="fas fa-check-circle icon text-orange-500"></i>
+                                      Oui
+                                  </div>
+                                  <input type="radio" name="prestations-sans-debits" id="prestations-sans-debits-no" value="no">
+                                  <div class="bubble-option" onclick="selectBubble('prestations-sans-debits-no', 'prestations-sans-debits', this)">
+                                      <i class="fas fa-times-circle icon text-gray-500"></i>
+                                      Non
+                                  </div>
+                              </div>
+                          </div>
+
+                                                 <!-- Résultat E-INVOICING et E-REPORTING -->
+                         <div id="e-invoicing-result" class="hidden mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                             <h4 class="font-bold text-blue-800 mb-2 flex items-center">
+                                 <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                                 Résultat de l'analyse E-INVOICING et E-REPORTING
+                             </h4>
+                         </div>
+                    </div>
+
+                        </div> <!-- Fin de form-content-q5-q6 -->
+
+                        </div> <!-- Fin de form-content-redevable -->
+                        </div> <!-- Fin de form-content-after-france -->
+                        </div> <!-- Fin de form-content-after-tva -->
+
+                    <!-- Error Message -->
+                    <div id="form-error" class="hidden p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div class="flex">
+                            <i class="fas fa-exclamation-circle text-red-600 mr-2 mt-1"></i>
+                            <p class="text-red-800 text-sm" id="form-error-text"></p>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col md:flex-row justify-center gap-6 pt-8">
+                        <div class="flex items-center">
+                            <button type="button" onclick="window.location.href='index.html'" class="bg-gradient-to-r from-gray-500 to-gray-600 text-white text-lg font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center">
+                                <i class="fas fa-arrow-left mr-3"></i>
+                                Retour à l'accueil
+                            </button>
+                        </div>
+                        <div class="flex items-center">
+                            <button type="button" onclick="startAnalysis('vente')" class="bg-gradient-to-r from-green-400 to-green-600 text-white text-lg font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center">
+                                <i class="fas fa-arrow-up mr-3"></i>
+                                Analyser les flux de VENTE
+                            </button>
+                        </div>
+                        <div class="flex items-center">
+                            <button type="button" onclick="startAnalysis('achat')" class="bg-gradient-to-r from-yellow-500 to-red-500 text-white text-lg font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center">
+                                <i class="fas fa-arrow-down mr-3"></i>
+                                Analyser les flux d'ACHAT
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        let isEditing = false;
+        let editingClientId = null;
+        
+        console.log('new-dossier.html script loaded');
+
+        // Initialize form
+        function initializeForm() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const editId = urlParams.get('edit');
+            
+            if (editId) {
+                isEditing = true;
+                editingClientId = editId;
+                loadClientForEditing(editId);
+                document.querySelector('h2').textContent = 'Modifier le dossier client';
+                document.querySelector('button[type="submit"] i').className = 'fas fa-save mr-2';
+                document.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-save mr-2"></i> Enregistrer les modifications';
+            }
+            
+            // Add E-INVOICING event listeners
+            addEInvoicingListeners();
+        }
+
+        // Load client for editing
+        function loadClientForEditing(clientId) {
+            const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+            const client = clients.find(c => c.id === clientId);
+            
+            if (client) {
+                console.log('Chargement du client pour édition:', client);
+                
+                // Set editing mode
+                isEditing = true;
+                editingClientId = clientId;
+                
+                // Update form title
+                const formTitle = document.getElementById('form-title');
+                if (formTitle) {
+                    formTitle.textContent = 'Modifier le dossier client';
+                } else {
+                    console.warn('Element form-title non trouvé');
+                }
+                
+                // Restore basic client information
+                const clientNameElement = document.getElementById('client-name');
+                if (clientNameElement) {
+                    clientNameElement.value = client.name || '';
+                } else {
+                    console.warn('Element client-name non trouvé');
+                }
+                
+                // Restore optional fields if they exist
+                const emailElement = document.getElementById('client-email');
+                if (emailElement) {
+                    emailElement.value = client.email || '';
+                }
+                
+                const sectorElement = document.getElementById('client-sector');
+                if (sectorElement) {
+                    sectorElement.value = client.sector || '';
+                }
+                
+                const notesElement = document.getElementById('client-notes');
+                if (notesElement) {
+                    notesElement.value = client.notes || '';
+                }
+                
+                // Restore dossier number
+                if (client.dossierNum) {
+                    const dossierNumElement = document.getElementById('dossier-num');
+                    if (dossierNumElement) {
+                        dossierNumElement.value = client.dossierNum;
+                    }
+                }
+                
+                // Restore activity
+                if (client.activity) {
+                    const activityElement = document.getElementById('client-activity');
+                    if (activityElement) {
+                        activityElement.value = client.activity;
+                    }
+                }
+                
+                // Restore SIRET
+                if (client.siret) {
+                    const siretElement = document.getElementById('client-siret');
+                    if (siretElement) {
+                        siretElement.value = client.siret;
+                    }
+                }
+                
+                // Restore client Assujetti TVA (Question 5)
+                if (client.clientAssujettiTVA) {
+                    const clientTvaRadio = document.getElementById(`client-assujetti-tva-${client.clientAssujettiTVA}`);
+                    if (clientTvaRadio) {
+                        clientTvaRadio.checked = true;
+                        setTimeout(() => {
+                            checkTvaStatus(); // Update form visibility after DOM update
+                            // Restore client établi en France (Question 6) if Q5 is yes
+                            if (client.clientEtabliFranceSiren) {
+                                const clientFranceRadio = document.getElementById(`client-etabli-france-${client.clientEtabliFranceSiren}`);
+                                if (clientFranceRadio) {
+                                    clientFranceRadio.checked = true;
+                                    setTimeout(() => {
+                                        checkFranceStatus();
+                                        // Restore statut TVA (Question 7) if Q6 is yes
+                                        if (client.statutTvaClient) {
+                                            let statutTvaId;
+                                            if (client.statutTvaClient === 'redevable-total') statutTvaId = 'statut-tva-total';
+                                            else if (client.statutTvaClient === 'redevable-partiel') statutTvaId = 'statut-tva-partiel';
+                                            else if (client.statutTvaClient === 'non-redevable') statutTvaId = 'statut-tva-non-redevable';
+                                            else if (client.statutTvaClient === 'franchise-base') statutTvaId = 'statut-tva-franchise';
+                                            
+                                            if (statutTvaId) {
+                                                const statutTvaRadio = document.getElementById(statutTvaId);
+                                                if (statutTvaRadio) {
+                                                    statutTvaRadio.checked = true;
+                                                    setTimeout(() => {
+                                                        checkStatutTva();
+                                                        // Restore réception fournisseurs (Question 8) pour tous
+                                                        if (client.receptionFacturesFournisseurs) {
+                                                            const receptionRadio = document.getElementById(`reception-fournisseurs-${client.receptionFacturesFournisseurs}`);
+                                                            if (receptionRadio) {
+                                                                receptionRadio.checked = true;
+                                                                setTimeout(() => checkReceptionFournisseurs(), 100);
+                                                            }
+                                                        }
+                                                        
+                                                        // Restore acquisitions importations (Question 9) pour tous
+                                                        if (client.acquisitionsImportations && Array.isArray(client.acquisitionsImportations)) {
+                                                            client.acquisitionsImportations.forEach(type => {
+                                                                const checkbox = document.getElementById(`acquisitions-importations-${type}`);
+                                                                if (checkbox) {
+                                                                    checkbox.checked = true;
+                                                                }
+                                                            });
+                                                            setTimeout(() => checkAcquisitionsImportations(), 100);
+                                                        }
+                                                        
+                                                        // Restore émission factures France (Question 10) if Q7 is redevable/franchise
+                                                        if (client.clientEmetFacturesFrance && client.statutTvaClient !== 'non-redevable') {
+                                                            const emetFranceRadio = document.getElementById(`emets-france-${client.clientEmetFacturesFrance}`);
+                                                            if (emetFranceRadio) {
+                                                                emetFranceRadio.checked = true;
+                                                                setTimeout(() => {
+                                                                    checkEmetFranceStatus();
+                                                                    // Restore types de clients (Question 11) if Q10 is yes
+                                                                    if (client.clientTypesFrance && Array.isArray(client.clientTypesFrance) && client.clientEmetFacturesFrance === 'yes') {
+                                                                        client.clientTypesFrance.forEach(type => {
+                                                                            const checkbox = document.getElementById(`client-type-${type}`);
+                                                                            if (checkbox) {
+                                                                                checkbox.checked = true;
+                                                                            }
+                                                                        });
+                                                                        setTimeout(() => {
+                                                                            checkClientTypes();
+                                                                            // Restore nature opérations (Question 12) if Q10 is yes
+                                                                            if (client.natureOperations && Array.isArray(client.natureOperations) && client.clientEmetFacturesFrance === 'yes') {
+                                                                                client.natureOperations.forEach(nature => {
+                                                                                    const checkbox = document.getElementById(`nature-${nature}`);
+                                                                                    if (checkbox) {
+                                                                                        checkbox.checked = true;
+                                                                                    }
+                                                                                });
+                                                                                setTimeout(() => {
+                                                                                    checkNatureOperations();
+                                                                                    // Restore option TVA débits (Question 12bis) if prestations ou mixte
+                                                                                    if (client.optionTvaDebits && client.natureOperations.some(n => n === 'prestations-services' || n === 'mixte')) {
+                                                                                        const optionTvaRadio = document.getElementById(`option-tva-debits-${client.optionTvaDebits}`);
+                                                                                        if (optionTvaRadio) {
+                                                                                            optionTvaRadio.checked = true;
+                                                                                            setTimeout(() => checkOptionTvaDebits(), 100);
+                                                                                        }
+                                                                                    }
+                                                                                }, 100);
+                                                                            }
+                                                                        }, 100);
+                                                                    } else if (client.clientEmetFacturesFrance === 'no') {
+                                                                        // Restore clients étranger (Question 13) if Q10 is no
+                                                                        if (client.clientsEtranger && Array.isArray(client.clientsEtranger)) {
+                                                                            client.clientsEtranger.forEach(type => {
+                                                                                const checkbox = document.getElementById(`clients-etranger-${type}`);
+                                                                                if (checkbox) {
+                                                                                    checkbox.checked = true;
+                                                                                }
+                                                                            });
+                                                                            setTimeout(() => checkClientsEtranger(), 100);
+                                                                        }
+                                                                    }
+                                                                }, 100);
+                                                            }
+                                                        }
+                                                    }, 100);
+                                                }
+                                            }
+                                        }
+                                    }, 100);
+                                }
+                            }
+                        }, 100);
+                    }
+                }
+                
+                // Restore PA selection
+                if (client.paSelection) {
+                    const paRadio = document.getElementById(`pa-${client.paSelection}`);
+                    if (paRadio) {
+                        paRadio.checked = true;
+                        togglePaName(); // Show/hide PA name field
+                        
+                        // Restore PA name if exists
+                        if (client.paName) {
+                            const paNameElement = document.getElementById('pa-name');
+                            if (paNameElement) {
+                                paNameElement.value = client.paName;
+                            }
+                        }
+                    }
+                }
+                
+                // Restore billing level
+                if (client.billingLevel) {
+                    const billingRadio = document.getElementById(`billing-${client.billingLevel}`);
+                    if (billingRadio) {
+                        billingRadio.checked = true;
+                    }
+                }
+                
+                // Restore caisse software
+                if (client.caisse) {
+                    const caisseRadio = document.getElementById(`caisse-${client.caisse}`);
+                    if (caisseRadio) {
+                        caisseRadio.checked = true;
+                    }
+                }
+                
+                // Restore facturation software
+                if (client.facturation) {
+                    const factRadio = document.getElementById(`fact-${client.facturation}`);
+                    if (factRadio) {
+                        factRadio.checked = true;
+                    }
+                }
+                
+                // Restore delegation
+                if (client.delegation) {
+                    const delegationRadio = document.getElementById(`delegation-${client.delegation}`);
+                    if (delegationRadio) {
+                        delegationRadio.checked = true;
+                    }
+                }
+                
+                // Restore E-INVOICING answers
+                if (client.vendeurAssujettiTVA) {
+                    const vendeurTVARadio = document.getElementById(`vendeur-tva-${client.vendeurAssujettiTVA}`);
+                    if (vendeurTVARadio) {
+                        vendeurTVARadio.checked = true;
+                    }
+                }
+                
+                if (client.vendeurEtabliFrance) {
+                    const vendeurFranceRadio = document.getElementById(`vendeur-france-${client.vendeurEtabliFrance}`);
+                    if (vendeurFranceRadio) {
+                        vendeurFranceRadio.checked = true;
+                    }
+                }
+                
+                if (client.clientAssujettiOuAdmin) {
+                    const clientAssujettiRadio = document.getElementById(`client-assujetti-${client.clientAssujettiOuAdmin}`);
+                    if (clientAssujettiRadio) {
+                        clientAssujettiRadio.checked = true;
+                    }
+                }
+                
+                if (client.clientParticulier) {
+                    const clientParticulierRadio = document.getElementById(`client-particulier-${client.clientParticulier}`);
+                    if (clientParticulierRadio) {
+                        clientParticulierRadio.checked = true;
+                    }
+                }
+                
+                                 if (client.clientEtabliFrance) {
+                     const clientFranceRadio = document.getElementById(`client-france-${client.clientEtabliFrance}`);
+                     if (clientFranceRadio) {
+                         clientFranceRadio.checked = true;
+                     }
+                 }
+                 
+                 // Restore prestations sans débits
+                 if (client.prestationsSansDebits) {
+                     const prestationsRadio = document.getElementById(`prestations-sans-debits-${client.prestationsSansDebits}`);
+                     if (prestationsRadio) {
+                         prestationsRadio.checked = true;
+                     }
+                 }
+                 
+                 // Calculate and display E-INVOICING result if all answers are present
+                 if (client.vendeurAssujettiTVA && client.vendeurEtabliFrance && client.clientAssujettiOuAdmin && client.clientParticulier && client.clientEtabliFrance && client.prestationsSansDebits) {
+                     setTimeout(() => {
+                         calculateEInvoicingObligation();
+                     }, 100);
+                 }
+                
+                // Set analysis types based on existing analyses
+                if (client.analyses) {
+                    const analyseVente = document.getElementById('analyse-vente');
+                    const analyseAchat = document.getElementById('analyse-achat');
+                    
+                    if (client.analyses.vente && analyseVente) {
+                        analyseVente.checked = true;
+                    }
+                    if (client.analyses.achat && analyseAchat) {
+                        analyseAchat.checked = true;
+                    }
+                }
+                
+                // Update visual state of bubbles
+                setTimeout(() => {
+                    initializeBubbles();
+                }, 100);
+                
+                console.log('Client restauré avec succès');
+            } else {
+                console.error('Client non trouvé pour l\'édition:', clientId);
+            }
+        }
+
+        // Fonction pour mettre à jour l'état des questions (plus utilisée pour afficher progressivement)
+        function showNextQuestion(questionNumber) {
+            // Cette fonction n'est plus nécessaire, mais on la garde pour compatibilité
+            // Maintenant on utilise updateQuestionStates() à la place
+            updateQuestionStates();
+        }
+        
+        // Fonction pour initialiser l'affichage de toutes les questions
+        function initializeProgressiveQuestions() {
+            // Afficher toutes les questions au départ
+            const allQuestions = document.querySelectorAll('.question-container');
+            allQuestions.forEach((question) => {
+                question.classList.remove('hidden-question');
+                question.classList.remove('hidden');
+            });
+            
+            // Afficher toutes les sections conditionnelles
+            const formContentAfterTva = document.getElementById('form-content-after-tva');
+            const formContentAfterFrance = document.getElementById('form-content-after-france');
+            const formContentRedevable = document.getElementById('form-content-redevable');
+            const formContentQ11Q12 = document.getElementById('form-content-q11-q12');
+            const formContentQ12bis = document.getElementById('form-content-q12bis');
+            
+            // S'assurer que tous les conteneurs parent sont visibles
+            if (formContentAfterTva) {
+                formContentAfterTva.classList.remove('hidden');
+                formContentAfterTva.style.display = 'block';
+            }
+            if (formContentAfterFrance) {
+                formContentAfterFrance.classList.remove('hidden');
+                formContentAfterFrance.style.display = 'block';
+            }
+            if (formContentRedevable) {
+                formContentRedevable.classList.remove('hidden');
+                formContentRedevable.style.display = 'block';
+            }
+            if (formContentQ11Q12) {
+                formContentQ11Q12.classList.remove('hidden');
+                formContentQ11Q12.style.display = 'block';
+            }
+            if (formContentQ12bis) {
+                // Q12bis reste hidden par défaut, sera affiché si nécessaire
+            }
+            
+            // S'assurer que Q8 et Q9 sont visibles (elles sont en dehors des conteneurs conditionnels, après Q7)
+            const q8 = document.getElementById('question-8-container');
+            const q9 = document.getElementById('question-9-container');
+            if (q8) {
+                q8.style.display = 'block';
+                q8.style.visibility = 'visible';
+            }
+            if (q9) {
+                q9.style.display = 'block';
+                q9.style.visibility = 'visible';
+            }
+            
+            // Initialiser l'état grisé des questions selon les réponses
+            updateQuestionStates();
+        }
+        
+        // Fonction pour mettre à jour l'état grisé des questions
+        function updateQuestionStates() {
+            // Récupérer les réponses actuelles
+            const clientAssujettiTva = document.querySelector('input[name="client-assujetti-tva"]:checked')?.value;
+            const clientEtabliFranceSiren = document.querySelector('input[name="client-etabli-france-siren"]:checked')?.value;
+            const statutTva = document.querySelector('input[name="statut-tva-client"]:checked')?.value;
+            const emetFrance = document.querySelector('input[name="client-emet-factures-france"]:checked')?.value;
+            const natureOps = document.querySelectorAll('input[name="nature-operations[]"]:checked');
+            const selectedNatures = Array.from(natureOps).map(cb => cb.value);
+            
+            // Question 1 (PA) : Toujours active
+            const q1 = document.getElementById('question-1-container');
+            if (q1) q1.classList.remove('disabled-question');
+            
+            // Question 2 (Billing Level) : Toujours active
+            const q2 = document.getElementById('question-2-container');
+            if (q2) q2.classList.remove('disabled-question');
+            
+            // Question 3 (Logiciels) : Toujours active
+            const q3 = document.getElementById('question-3-container');
+            if (q3) q3.classList.remove('disabled-question');
+            
+            // Question 4 (Périmètre) : Toujours active
+            const q4 = document.getElementById('question-4-container');
+            if (q4) q4.classList.remove('disabled-question');
+            
+            // Question 5 (Client assujetti TVA) : Toujours active
+            const q5 = document.getElementById('question-5-container');
+            if (q5) q5.classList.remove('disabled-question');
+            
+            // Question 6 (Client établi en France) : Dégriser si Q5 = yes
+            const q6 = document.getElementById('question-6-container');
+            if (q6) {
+                if (clientAssujettiTva === 'yes') {
+                    q6.classList.remove('disabled-question');
+                } else {
+                    q6.classList.add('disabled-question');
+                }
+            }
+            
+            // Question 7 (Statut TVA) : Dégriser si Q5 = yes et Q6 = yes
+            const q7 = document.getElementById('question-7-statut-container');
+            if (q7) {
+                if (clientAssujettiTva === 'yes' && clientEtabliFranceSiren === 'yes') {
+                    q7.classList.remove('disabled-question');
+                } else {
+                    q7.classList.add('disabled-question');
+                }
+            }
+            
+            // Question 8 (réception factures fournisseurs) : Dégriser si Q5=yes, Q6=yes et Q7 répondue (redevable ou non-redevable)
+            const q8 = document.getElementById('question-8-container');
+            if (q8) {
+                // Q8 est pertinente pour tous (redevables et non-redevables) dès que Q5, Q6 et Q7 sont répondues
+                const canShowQ8 = clientAssujettiTva === 'yes' && clientEtabliFranceSiren === 'yes' && statutTva;
+                console.log('updateQuestionStates - Q8 check:', {clientAssujettiTva, clientEtabliFranceSiren, statutTva, canShowQ8});
+                
+                if (canShowQ8) {
+                    q8.classList.remove('disabled-question');
+                } else {
+                    q8.classList.add('disabled-question');
+                }
+            }
+            
+            // Question 9 (acquisitions/importations) : Dégriser si Q5=yes, Q6=yes et Q7 répondue
+            const q9 = document.getElementById('question-9-container');
+            if (q9) {
+                const canShowQ9 = clientAssujettiTva === 'yes' && clientEtabliFranceSiren === 'yes' && statutTva;
+                if (canShowQ9) {
+                    q9.classList.remove('disabled-question');
+                } else {
+                    q9.classList.add('disabled-question');
+                }
+            }
+            
+            // Question 10 (Émet factures en France) : Dégriser si Q7 = redevable (total, partiel ou franchise) → Q10
+            const q10 = document.getElementById('question-10-container');
+            if (q10) {
+                if (statutTva && statutTva !== 'non-redevable' && clientAssujettiTva === 'yes' && clientEtabliFranceSiren === 'yes') {
+                    q10.classList.remove('disabled-question');
+                } else {
+                    q10.classList.add('disabled-question');
+                }
+            }
+            
+            // Question 11 (Types de clients) : Dégriser si Q10 = yes → Q11
+            const q11 = document.getElementById('question-11-types-container');
+            if (q11) {
+                if (emetFrance === 'yes' && statutTva && statutTva !== 'non-redevable' && clientAssujettiTva === 'yes' && clientEtabliFranceSiren === 'yes') {
+                    q11.classList.remove('disabled-question');
+                } else {
+                    q11.classList.add('disabled-question');
+                }
+            }
+            
+            // Question 12 (Nature opérations) : Dégriser si Q10 = yes → Q12
+            const q12 = document.getElementById('question-12-container');
+            if (q12) {
+                if (emetFrance === 'yes' && statutTva && statutTva !== 'non-redevable' && clientAssujettiTva === 'yes' && clientEtabliFranceSiren === 'yes') {
+                    q12.classList.remove('disabled-question');
+                } else {
+                    q12.classList.add('disabled-question');
+                }
+            }
+            
+            // Question 12bis : Dégriser si Q12 contient prestations-services ou mixte → Q12bis
+            const q12bis = document.getElementById('question-12bis-container');
+            if (q12bis) {
+                if ((selectedNatures.includes('prestations-services') || selectedNatures.includes('mixte')) && emetFrance === 'yes' && statutTva && statutTva !== 'non-redevable' && clientAssujettiTva === 'yes' && clientEtabliFranceSiren === 'yes') {
+                    q12bis.classList.remove('disabled-question');
+                } else {
+                    q12bis.classList.add('disabled-question');
+                }
+            }
+            
+            // Question 13 (clients étranger) : Dégriser si Q10 = no → Q13
+            const q13 = document.getElementById('question-13-etranger-container');
+            if (q13) {
+                if (emetFrance === 'no' && statutTva && statutTva !== 'non-redevable' && clientAssujettiTva === 'yes' && clientEtabliFranceSiren === 'yes') {
+                    q13.classList.remove('disabled-question');
+                } else {
+                    q13.classList.add('disabled-question');
+                }
+            }
+        }
+
+        // Select bubble function
+        function selectBubble(inputId, groupName, clickedElement) {
+            // Get the radio input
+            const radioInput = document.getElementById(inputId);
+            radioInput.checked = true;
+            
+            // Update visual state of all bubbles in the group
+            const group = radioInput.closest('.bubble-group');
+            const allBubbles = group.querySelectorAll('.bubble-option');
+            
+            // Remove selected class from all bubbles in group
+            allBubbles.forEach(bubble => bubble.classList.remove('selected'));
+            
+            // Add selected class to clicked bubble
+            if (clickedElement) {
+                clickedElement.classList.add('selected');
+            }
+            
+            // Trigger any onChange events
+            radioInput.dispatchEvent(new Event('change'));
+            
+            // Special handling for TVA status check
+            if (groupName === 'client-assujetti-tva') {
+                checkTvaStatus();
+            }
+            
+            // Special handling for France status check
+            if (groupName === 'client-etabli-france-siren') {
+                checkFranceStatus();
+            }
+            
+            // Special handling for Statut TVA check
+            if (groupName === 'statut-tva-client') {
+                checkStatutTva();
+            }
+            
+            // Special handling for Emet France check
+            if (groupName === 'client-emet-factures-france') {
+                checkEmetFranceStatus();
+            }
+            
+            // Special handling for Client Types checkboxes
+            // Note: Les checkboxes déclenchent directement checkClientTypes via onchange
+            
+            // Special handling for Option TVA Débits check
+            if (groupName === 'option-tva-debits') {
+                checkOptionTvaDebits();
+            }
+            
+            // Special handling for Reception Fournisseurs check
+            if (groupName === 'reception-factures-fournisseurs') {
+                checkReceptionFournisseurs();
+            }
+            
+            
+            // Special handling for PA selection
+            if (groupName === 'pa-selection') {
+                togglePaName();
+            }
+            
+                         // Special handling for E-INVOICING questions
+             if (['vendeur-assujetti-tva', 'vendeur-etabli-france', 'client-assujetti-admin', 'client-particulier', 'client-etabli-france', 'prestations-sans-debits'].includes(groupName)) {
+                 calculateEInvoicingObligation();
+             }
+        }
+
+        // Check TVA status and update question states
+        function checkTvaStatus() {
+            const clientAssujettiTva = document.querySelector('input[name="client-assujetti-tva"]:checked');
+            const tvaStopMessage = document.getElementById('tva-stop-message');
+            const formContentAfterTva = document.getElementById('form-content-after-tva');
+            
+            if (clientAssujettiTva) {
+                if (clientAssujettiTva.value === 'no') {
+                    // Afficher le message STOP
+                    if (tvaStopMessage) tvaStopMessage.classList.remove('hidden');
+                } else if (clientAssujettiTva.value === 'yes') {
+                    // Masquer le message STOP
+                    if (tvaStopMessage) tvaStopMessage.classList.add('hidden');
+                }
+            }
+            
+            // Mettre à jour l'état grisé de toutes les questions
+            updateQuestionStates();
+        }
+        
+        // Check France status and update question states (Question 2)
+        function checkFranceStatus() {
+            const clientEtabliFranceSiren = document.querySelector('input[name="client-etabli-france-siren"]:checked');
+            const franceStopMessage = document.getElementById('france-stop-message');
+            
+            if (clientEtabliFranceSiren) {
+                if (clientEtabliFranceSiren.value === 'no') {
+                    // Afficher le message STOP
+                    if (franceStopMessage) franceStopMessage.classList.remove('hidden');
+                } else if (clientEtabliFranceSiren.value === 'yes') {
+                    // Masquer le message STOP
+                    if (franceStopMessage) franceStopMessage.classList.add('hidden');
+                }
+            }
+            
+            // Mettre à jour l'état grisé de toutes les questions
+            updateQuestionStates();
+        }
+        
+        // Check Statut TVA and update question states (Question 7)
+        function checkStatutTva() {
+            const statutTva = document.querySelector('input[name="statut-tva-client"]:checked');
+            const nonRedevableMessage = document.getElementById('non-redevable-message');
+            
+            if (statutTva) {
+                // Masquer le message (maintenant inutilisé)
+                if (nonRedevableMessage) nonRedevableMessage.classList.add('hidden');
+            }
+            
+            // Mettre à jour l'état grisé de toutes les questions
+            // Q8 et Q9 seront automatiquement dégrisées dès que Q7 est répondue
+            updateQuestionStates();
+        }
+        
+        // Check Emet France status and update question states (Question 10)
+        function checkEmetFranceStatus() {
+            // Mettre à jour l'état grisé de toutes les questions
+            updateQuestionStates();
+        }
+        
+        // Check Clients Étranger and calculate E-REPORTING obligations (Question 13)
+        function checkClientsEtranger() {
+            const checkboxes = document.querySelectorAll('input[name="clients-etranger[]"]:checked');
+            const resultContainer = document.getElementById('q13-etranger-ereporting-result');
+            const resultContent = document.getElementById('q13-etranger-ereporting-content');
+            
+            if (checkboxes.length === 0) {
+                if (resultContainer) resultContainer.classList.add('hidden');
+                // Pas besoin de return, on continue pour mettre à jour les états
+            }
+            
+            const selectedTypes = Array.from(checkboxes).map(cb => cb.value);
+            const obligations = [];
+            
+            // Si "Non" est sélectionné, pas d'obligation
+            if (selectedTypes.includes('non')) {
+                if (resultContainer) resultContainer.classList.add('hidden');
+                // Mettre à jour les états avant de retourner
+                updateQuestionStates();
+                return;
+            }
+            
+            // Calculer les obligations E-REPORTING International
+            if (selectedTypes.includes('entreprises')) {
+                obligations.push({
+                    type: 'E-REPORTING B2B International',
+                    description: 'E-REPORTING B2B International obligatoire pour les entreprises à l\'étranger (UE ou hors UE)',
+                    icon: 'fa-building',
+                    color: 'text-blue-600'
+                });
+            }
+            
+            if (selectedTypes.includes('particuliers')) {
+                obligations.push({
+                    type: 'E-REPORTING B2C International',
+                    description: 'E-REPORTING B2C International obligatoire pour les particuliers à l\'étranger (si TVA française)',
+                    icon: 'fa-user',
+                    color: 'text-orange-600'
+                });
+            }
+            
+            // Afficher le résultat
+            if (resultContainer && resultContent) {
+                resultContainer.classList.remove('hidden');
+                resultContent.innerHTML = obligations.map(ob => `
+                    <div class="flex items-start p-2 bg-white rounded border border-blue-200">
+                        <i class="fas ${ob.icon} ${ob.color} mr-2 mt-1"></i>
+                        <div>
+                            <strong class="text-blue-800">${ob.type}</strong>
+                            <p class="text-gray-600 text-sm">${ob.description}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            
+            // Mettre à jour l'état grisé de toutes les questions
+            updateQuestionStates();
+        }
+        
+        // Check Reception Fournisseurs (Question 8)
+        function checkReceptionFournisseurs() {
+            const receptionFournisseurs = document.querySelector('input[name="reception-factures-fournisseurs"]:checked');
+            const receptionObligationMessage = document.getElementById('q8-reception-obligation-message');
+            
+            if (receptionFournisseurs) {
+                if (receptionFournisseurs.value === 'yes') {
+                    // Afficher le message obligation réception
+                    if (receptionObligationMessage) receptionObligationMessage.classList.remove('hidden');
+                } else if (receptionFournisseurs.value === 'no') {
+                    // Masquer le message
+                    if (receptionObligationMessage) receptionObligationMessage.classList.add('hidden');
+                }
+            }
+            
+            // Mettre à jour l'état grisé de toutes les questions
+            updateQuestionStates();
+        }
+        
+        // Check Acquisitions Importations and calculate E-REPORTING obligations (Question 9)
+        function checkAcquisitionsImportations() {
+            const checkboxes = document.querySelectorAll('input[name="acquisitions-importations[]"]:checked');
+            const resultContainer = document.getElementById('q9-ereporting-result');
+            const resultContent = document.getElementById('q9-ereporting-content');
+            
+            if (checkboxes.length === 0) {
+                if (resultContainer) resultContainer.classList.add('hidden');
+                // Pas besoin de return, on continue pour mettre à jour les états
+            }
+            
+            const selectedTypes = Array.from(checkboxes).map(cb => cb.value);
+            const obligations = [];
+            
+            // Si "Non" est sélectionné, pas d'obligation
+            if (selectedTypes.includes('non')) {
+                if (resultContainer) resultContainer.classList.add('hidden');
+                // Mettre à jour les états avant de retourner
+                updateQuestionStates();
+                return;
+            }
+            
+            // Calculer les obligations E-REPORTING
+            if (selectedTypes.includes('acquisitions-intracommunautaires')) {
+                obligations.push({
+                    type: 'E-REPORTING acquisitions',
+                    description: 'E-REPORTING obligatoire pour les acquisitions intracommunautaires',
+                    icon: 'fa-truck',
+                    color: 'text-blue-600'
+                });
+            }
+            
+            if (selectedTypes.includes('importations-autoliquidation')) {
+                obligations.push({
+                    type: 'E-REPORTING importations',
+                    description: 'E-REPORTING obligatoire pour les importations avec autoliquidation',
+                    icon: 'fa-ship',
+                    color: 'text-indigo-600'
+                });
+            }
+            
+            // Afficher le résultat
+            if (resultContainer && resultContent) {
+                resultContainer.classList.remove('hidden');
+                resultContent.innerHTML = obligations.map(ob => `
+                    <div class="flex items-start p-2 bg-white rounded border border-blue-200">
+                        <i class="fas ${ob.icon} ${ob.color} mr-2 mt-1"></i>
+                        <div>
+                            <strong class="text-blue-800">${ob.type}</strong>
+                            <p class="text-gray-600 text-sm">${ob.description}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            // Mettre à jour l'état grisé de toutes les questions
+            updateQuestionStates();
+        }
+        
+        // Check Client Types and calculate obligations (Question 11)
+        function checkClientTypes() {
+            const checkboxes = document.querySelectorAll('input[name="client-types-france[]"]:checked');
+            const resultContainer = document.getElementById('q11-obligations-result');
+            const resultContent = document.getElementById('q11-obligations-content');
+            
+            if (checkboxes.length === 0) {
+                if (resultContainer) resultContainer.classList.add('hidden');
+                // Pas besoin de return, on continue pour mettre à jour les états
+            }
+            
+            const selectedTypes = Array.from(checkboxes).map(cb => cb.value);
+            const obligations = [];
+            
+            // Calculer les obligations
+            if (selectedTypes.includes('entreprises-tva')) {
+                obligations.push({
+                    type: 'E-INVOICING',
+                    description: 'E-INVOICING obligatoire pour les entreprises assujetties TVA',
+                    icon: 'fa-file-invoice',
+                    color: 'text-blue-600'
+                });
+            }
+            
+            if (selectedTypes.includes('administrations')) {
+                obligations.push({
+                    type: 'E-INVOICING (Chorus Pro)',
+                    description: 'E-INVOICING obligatoire via Chorus Pro pour les administrations publiques',
+                    icon: 'fa-landmark',
+                    color: 'text-purple-600'
+                });
+            }
+            
+            if (selectedTypes.includes('particuliers')) {
+                obligations.push({
+                    type: 'E-REPORTING B2C',
+                    description: 'E-REPORTING B2C obligatoire pour les particuliers/consommateurs',
+                    icon: 'fa-user',
+                    color: 'text-orange-600'
+                });
+            }
+            
+            if (selectedTypes.includes('associations')) {
+                obligations.push({
+                    type: 'E-REPORTING B2C',
+                    description: 'E-REPORTING B2C obligatoire pour les associations non assujetties',
+                    icon: 'fa-hands-helping',
+                    color: 'text-red-600'
+                });
+            }
+            
+            // Afficher le résultat
+            if (resultContainer && resultContent) {
+                resultContainer.classList.remove('hidden');
+                resultContent.innerHTML = obligations.map(ob => `
+                    <div class="flex items-start p-2 bg-white rounded border border-blue-200">
+                        <i class="fas ${ob.icon} ${ob.color} mr-2 mt-1"></i>
+                        <div>
+                            <strong class="text-blue-800">${ob.type}</strong>
+                            <p class="text-gray-600 text-sm">${ob.description}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            // Mettre à jour l'état grisé de toutes les questions
+            updateQuestionStates();
+        }
+        
+        // Check Nature Operations and update question states (Question 12)
+        function checkNatureOperations() {
+            const checkboxes = document.querySelectorAll('input[name="nature-operations[]"]:checked');
+            const formContentQ12bis = document.getElementById('form-content-q12bis');
+            const selectedTypes = Array.from(checkboxes).map(cb => cb.value);
+            
+            // Afficher/masquer Q12bis selon les sélections
+            if (selectedTypes.includes('prestations-services') || selectedTypes.includes('mixte')) {
+                if (formContentQ12bis) formContentQ12bis.classList.remove('hidden');
+            } else {
+                if (formContentQ12bis) formContentQ12bis.classList.add('hidden');
+            }
+            
+            // Mettre à jour l'état grisé de toutes les questions
+            updateQuestionStates();
+        }
+        
+        // Check Option TVA Débits and update question states (Question 12bis)
+        function checkOptionTvaDebits() {
+            const optionTvaDebits = document.querySelector('input[name="option-tva-debits"]:checked');
+            const ereportingMessage = document.getElementById('q12bis-ereporting-message');
+            
+            if (optionTvaDebits) {
+                if (optionTvaDebits.value === 'no') {
+                    // Afficher le message E-REPORTING obligatoire
+                    if (ereportingMessage) ereportingMessage.classList.remove('hidden');
+                } else if (optionTvaDebits.value === 'yes') {
+                    // Masquer le message
+                    if (ereportingMessage) ereportingMessage.classList.add('hidden');
+                }
+            }
+            
+            // Mettre à jour l'état grisé de toutes les questions
+            updateQuestionStates();
+        }
+        
+        // Toggle PA name input
+        function togglePaName() {
+            const paYes = document.getElementById('pa-yes');
+            const paNo = document.getElementById('pa-no');
+            const paNameContainer = document.getElementById('pa-name-container');
+            const paAlert = document.getElementById('pa-alert');
+            
+            if (paYes && paYes.checked) {
+                if (paNameContainer) paNameContainer.classList.remove('hidden');
+                if (paAlert) paAlert.classList.add('hidden');
+            } else if (paNo && paNo.checked) {
+                if (paNameContainer) paNameContainer.classList.add('hidden');
+                if (paAlert) paAlert.classList.remove('hidden');
+            }
+        }
+
+        // Calculate E-INVOICING and E-REPORTING obligations
+        function calculateEInvoicingObligation() {
+            const vendeurAssujettiTVA = document.querySelector('input[name="vendeur-assujetti-tva"]:checked')?.value;
+            const vendeurEtabliFrance = document.querySelector('input[name="vendeur-etabli-france"]:checked')?.value;
+            const clientAssujettiOuAdmin = document.querySelector('input[name="client-assujetti-admin"]:checked')?.value;
+            const clientParticulier = document.querySelector('input[name="client-particulier"]:checked')?.value;
+            const clientEtabliFrance = document.querySelector('input[name="client-etabli-france"]:checked')?.value;
+            const prestationsSansDebits = document.querySelector('input[name="prestations-sans-debits"]:checked')?.value;
+            
+            const resultContainer = document.getElementById('e-invoicing-result');
+            
+            // Check if all questions are answered
+            if (!vendeurAssujettiTVA || !vendeurEtabliFrance || !clientAssujettiOuAdmin || !clientParticulier || !clientEtabliFrance || !prestationsSansDebits) {
+                resultContainer.classList.add('hidden');
+                return null;
+            }
+            
+            // Calculate E-INVOICING obligation
+            const vendeurEligible = vendeurAssujettiTVA === 'yes' && vendeurEtabliFrance === 'yes';
+            
+            let eInvoicingObligatory = false;
+            let eInvoicingReason = '';
+            let eInvoicingCategory = '';
+            
+            if (!vendeurEligible) {
+                eInvoicingObligatory = false;
+                eInvoicingReason = 'Le vendeur n\'est pas assujetti à la TVA ou n\'est pas établi en France';
+            } else if (clientAssujettiOuAdmin === 'yes' && clientEtabliFrance === 'yes') {
+                eInvoicingObligatory = true;
+                eInvoicingReason = 'Vendeur assujetti TVA établi en France + Client assujetti TVA/administration publique établi en France = Transaction domestique B2B/B2G';
+                eInvoicingCategory = 'B2B/B2G domestique';
+            } else if (clientParticulier === 'yes' || clientEtabliFrance === 'no') {
+                eInvoicingObligatory = true;
+                eInvoicingReason = 'Vendeur assujetti TVA établi en France + Client particulier ou entreprise étrangère';
+                eInvoicingCategory = clientParticulier === 'yes' ? 'B2C' : 'B2B/B2G international';
+            } else {
+                eInvoicingObligatory = false;
+                eInvoicingReason = 'Conditions non remplies pour l\'obligation E-INVOICING';
+            }
+            
+            // Calculate E-REPORTING obligation
+            let eReportingObligatory = false;
+            let eReportingReason = '';
+            let eReportingCategory = '';
+            
+            if (!vendeurEligible) {
+                eReportingObligatory = false;
+                eReportingReason = 'Le vendeur n\'est pas assujetti à la TVA ou n\'est pas établi en France';
+            } else if (clientParticulier === 'yes') {
+                eReportingObligatory = true;
+                eReportingReason = 'Vendeur assujetti TVA établi en France + Client particulier (B2C) = E-REPORTING obligatoire';
+                eReportingCategory = 'B2C - E-REPORTING';
+            } else if (clientEtabliFrance === 'no') {
+                eReportingObligatory = true;
+                eReportingReason = 'Vendeur assujetti TVA établi en France + Client étranger = E-REPORTING obligatoire';
+                eReportingCategory = 'B2B/B2G international - E-REPORTING';
+            } else if (prestationsSansDebits === 'yes') {
+                eReportingObligatory = true;
+                eReportingReason = 'Vendeur assujetti TVA établi en France + Prestations de services sans facturation = E-REPORTING obligatoire';
+                eReportingCategory = 'Prestations de services - E-REPORTING';
+            } else if (clientAssujettiOuAdmin === 'yes' && clientEtabliFrance === 'yes') {
+                eReportingObligatory = false;
+                eReportingReason = 'Transaction domestique B2B/B2G = Pas d\'E-REPORTING (E-INVOICING uniquement)';
+                eReportingCategory = 'B2B/B2G domestique - Pas d\'E-REPORTING';
+            } else {
+                eReportingObligatory = false;
+                eReportingReason = 'Conditions non remplies pour l\'obligation E-REPORTING';
+            }
+            
+            // Display combined results
+            resultContainer.classList.remove('hidden');
+            
+            // Determine overall container styling based on most critical obligation
+            const hasObligation = eInvoicingObligatory || eReportingObligatory;
+            const containerClass = hasObligation ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200';
+            
+            resultContainer.className = `mt-6 p-4 border rounded-lg ${containerClass}`;
+            
+            // Build comprehensive result display
+            let resultHTML = '<div class="space-y-4">';
+            
+            // E-INVOICING section
+            const eInvoicingIconClass = eInvoicingObligatory ? 'fa-exclamation-triangle text-red-600' : 'fa-check-circle text-green-600';
+            const eInvoicingTitleClass = eInvoicingObligatory ? 'text-red-800' : 'text-green-800';
+            const eInvoicingTextClass = eInvoicingObligatory ? 'text-red-700' : 'text-green-700';
+            
+            resultHTML += `
+                <div class="border-b border-gray-200 pb-3">
+                    <h4 class="font-bold ${eInvoicingTitleClass} mb-2 flex items-center">
+                        <i class="fas ${eInvoicingIconClass} mr-2"></i>
+                        E-INVOICING : ${eInvoicingObligatory ? 'OBLIGATOIRE' : 'Non obligatoire'}
+                    </h4>
+                    <p class="${eInvoicingTextClass} mb-2"><strong>Raison :</strong> ${eInvoicingReason}</p>
+                    ${eInvoicingCategory ? `<p class="${eInvoicingTextClass}"><strong>Catégorie :</strong> ${eInvoicingCategory}</p>` : ''}
+                </div>
+            `;
+            
+            // E-REPORTING section
+            const eReportingIconClass = eReportingObligatory ? 'fa-exclamation-triangle text-red-600' : 'fa-check-circle text-green-600';
+            const eReportingTitleClass = eReportingObligatory ? 'text-red-800' : 'text-green-800';
+            const eReportingTextClass = eReportingObligatory ? 'text-red-700' : 'text-green-700';
+            
+            resultHTML += `
+                <div>
+                    <h4 class="font-bold ${eReportingTitleClass} mb-2 flex items-center">
+                        <i class="fas ${eReportingIconClass} mr-2"></i>
+                        E-REPORTING : ${eReportingObligatory ? 'OBLIGATOIRE' : 'Non obligatoire'}
+                    </h4>
+                    <p class="${eReportingTextClass} mb-2"><strong>Raison :</strong> ${eReportingReason}</p>
+                    ${eReportingCategory ? `<p class="${eReportingTextClass}"><strong>Catégorie :</strong> ${eReportingCategory}</p>` : ''}
+                </div>
+            `;
+            
+            resultHTML += '</div>';
+            resultContainer.innerHTML = resultHTML;
+            
+            return { 
+                eInvoicing: { isObligatory: eInvoicingObligatory, reason: eInvoicingReason, category: eInvoicingCategory },
+                eReporting: { isObligatory: eReportingObligatory, reason: eReportingReason, category: eReportingCategory }
+            };
+        }
+
+        // Add event listeners for E-INVOICING questions
+        function addEInvoicingListeners() {
+            const eInvoicingInputs = [
+                'vendeur-assujetti-tva',
+                'vendeur-etabli-france', 
+                'client-assujetti-admin',
+                'client-particulier',
+                'client-etabli-france',
+                'prestations-sans-debits'
+            ];
+            
+            eInvoicingInputs.forEach(name => {
+                const inputs = document.querySelectorAll(`input[name="${name}"]`);
+                inputs.forEach(input => {
+                    input.addEventListener('change', calculateEInvoicingObligation);
+                });
+            });
+        }
+
+        // Start analysis
+        function startAnalysis(type) {
+            // Validate required fields
+            const clientName = document.getElementById('client-name').value.trim();
+            const clientAssujettiTva = document.querySelector('input[name="client-assujetti-tva"]:checked');
+            
+            if (!clientName) {
+                showError('Le nom du client est obligatoire.');
+                return;
+            }
+            
+            // Vérifier d'abord si le client est assujetti TVA
+            if (!clientAssujettiTva) {
+                showError('Veuillez répondre à la question 5 sur l\'assujettissement à la TVA.');
+                return;
+            }
+            
+            // Si le client n'est PAS assujetti à la TVA, sauvegarder et rediriger vers la page de résultat
+            if (clientAssujettiTva.value === 'no') {
+                const formData = {
+                    dossierNum: document.getElementById('dossier-num')?.value?.trim() || '',
+                    name: clientName,
+                    email: document.getElementById('client-email')?.value?.trim() || '',
+                    sector: document.getElementById('client-sector')?.value?.trim() || '',
+                    notes: document.getElementById('client-notes')?.value?.trim() || '',
+                    activity: document.getElementById('client-activity')?.value?.trim() || '',
+                    siret: document.getElementById('client-siret')?.value?.trim() || '',
+                    clientAssujettiTVA: 'no',
+                    horsChamp: true, // Marquer comme hors champ
+                    raisonHorsChamp: 'Client non assujetti à la TVA'
+                };
+                
+                // Sauvegarder le client et rediriger vers la page de résultat
+                saveClientHorsChamp(formData);
+                return;
+            }
+            
+            // Vérifier si le client est établi en France (Question 6)
+            const clientEtabliFranceSiren = document.querySelector('input[name="client-etabli-france-siren"]:checked');
+            if (!clientEtabliFranceSiren) {
+                showError('Veuillez répondre à la question 6 sur l\'établissement en France.');
+                return;
+            }
+            
+            // Si le client n'est PAS établi en France, sauvegarder et rediriger vers la page de résultat
+            if (clientEtabliFranceSiren.value === 'no') {
+                const formData = {
+                    dossierNum: document.getElementById('dossier-num')?.value?.trim() || '',
+                    name: clientName,
+                    email: document.getElementById('client-email')?.value?.trim() || '',
+                    sector: document.getElementById('client-sector')?.value?.trim() || '',
+                    notes: document.getElementById('client-notes')?.value?.trim() || '',
+                    activity: document.getElementById('client-activity')?.value?.trim() || '',
+                    siret: document.getElementById('client-siret')?.value?.trim() || '',
+                    clientAssujettiTVA: clientAssujettiTva.value,
+                    clientEtabliFranceSiren: 'no',
+                    horsChamp: true, // Marquer comme hors champ
+                    raisonHorsChamp: 'Client non établi en France - Pas d\'obligation en France'
+                };
+                
+                // Sauvegarder le client et rediriger vers la page de résultat
+                saveClientHorsChamp(formData);
+                return;
+            }
+            
+            // Vérifier le statut TVA (Question 7)
+            const statutTva = document.querySelector('input[name="statut-tva-client"]:checked');
+            if (!statutTva) {
+                showError('Veuillez répondre à la question 7 sur le statut TVA du client.');
+                return;
+            }
+            
+            // Vérifier Q8 (réception factures fournisseurs) pour tous (redevables et non-redevables)
+            const receptionFournisseurs = document.querySelector('input[name="reception-factures-fournisseurs"]:checked');
+            if (!receptionFournisseurs) {
+                showError('Veuillez répondre à la question 8 sur la réception de factures de fournisseurs.');
+                return;
+            }
+            
+            // Vérifier Q9 (acquisitions/importations) pour tous (redevables et non-redevables)
+            const acquisitionsImportations = document.querySelectorAll('input[name="acquisitions-importations[]"]:checked');
+            if (acquisitionsImportations.length === 0) {
+                showError('Veuillez cocher au moins une option dans la question 9 sur les acquisitions UE ou importations.');
+                return;
+            }
+            
+            // Si redevable ou franchise, vérifier Q10, Q11, Q12 et Q12bis
+            if (statutTva.value !== 'non-redevable') {
+                const emetFrance = document.querySelector('input[name="client-emet-factures-france"]:checked');
+                if (!emetFrance) {
+                    showError('Veuillez répondre à la question 10 sur l\'émission de factures en France.');
+                    return;
+                }
+                
+                // Si émet factures en France, vérifier Q11, Q12 et Q12bis
+                if (emetFrance.value === 'yes') {
+                    const clientTypes = document.querySelectorAll('input[name="client-types-france[]"]:checked');
+                    if (clientTypes.length === 0) {
+                        showError('Veuillez cocher au moins un type de client dans la question 11.');
+                        return;
+                    }
+                    
+                    // Vérifier Q12 (nature des opérations)
+                    const natureOperations = document.querySelectorAll('input[name="nature-operations[]"]:checked');
+                    if (natureOperations.length === 0) {
+                        showError('Veuillez cocher au moins une nature d\'opération dans la question 12.');
+                        return;
+                    }
+                    
+                    // Si prestations-services ou mixte est sélectionné, vérifier Q12bis
+                    const selectedNatures = Array.from(natureOperations).map(cb => cb.value);
+                    if (selectedNatures.includes('prestations-services') || selectedNatures.includes('mixte')) {
+                        const optionTvaDebits = document.querySelector('input[name="option-tva-debits"]:checked');
+                        if (!optionTvaDebits) {
+                            showError('Veuillez répondre à la question 12bis sur l\'option pour la TVA sur les débits.');
+                            return;
+                        }
+                    }
+                } else if (emetFrance.value === 'no') {
+                    // Si n'émet pas en France, vérifier Q13 (clients à l'étranger)
+                    const clientsEtranger = document.querySelectorAll('input[name="clients-etranger[]"]:checked');
+                    if (clientsEtranger.length === 0) {
+                        showError('Veuillez cocher au moins une option dans la question 13 sur les clients à l\'étranger.');
+                        return;
+                    }
+                }
+            }
+            
+            // Note: Les sections "Périmètre", "Logiciels utilisés" et "Questions E-INVOICING" sont masquées
+            // Elles ne font plus partie du questionnaire principal
+            
+            // Collect form data with safe element access
+            const formData = {
+                dossierNum: document.getElementById('dossier-num')?.value?.trim() || '',
+                name: clientName,
+                email: document.getElementById('client-email')?.value?.trim() || '',
+                sector: document.getElementById('client-sector')?.value?.trim() || '',
+                notes: document.getElementById('client-notes')?.value?.trim() || '',
+                activity: document.getElementById('client-activity')?.value?.trim() || '',
+                siret: document.getElementById('client-siret')?.value?.trim() || '',
+                clientAssujettiTVA: clientAssujettiTva.value,
+                clientEtabliFranceSiren: clientEtabliFranceSiren.value,
+                statutTvaClient: statutTva.value,
+                clientEmetFacturesFrance: document.querySelector('input[name="client-emet-factures-france"]:checked')?.value || '',
+                clientTypesFrance: Array.from(document.querySelectorAll('input[name="client-types-france[]"]:checked')).map(cb => cb.value),
+                natureOperations: Array.from(document.querySelectorAll('input[name="nature-operations[]"]:checked')).map(cb => cb.value),
+                optionTvaDebits: document.querySelector('input[name="option-tva-debits"]:checked')?.value || '',
+                clientsEtranger: Array.from(document.querySelectorAll('input[name="clients-etranger[]"]:checked')).map(cb => cb.value),
+                receptionFacturesFournisseurs: document.querySelector('input[name="reception-factures-fournisseurs"]:checked')?.value || '',
+                acquisitionsImportations: Array.from(document.querySelectorAll('input[name="acquisitions-importations[]"]:checked')).map(cb => cb.value),
+                // Configuration facture électronique (bulle violette)
+                paSelection: document.querySelector('input[name="pa-selection"]:checked')?.value || '',
+                paName: document.getElementById('pa-name')?.value?.trim() || '',
+                billingLevel: document.querySelector('input[name="billing-level"]:checked')?.value || '',
+                // Logiciels utilisés (bulle verte)
+                caisse: document.querySelector('input[name="caisse"]:checked')?.value || '',
+                facturation: document.querySelector('input[name="facturation"]:checked')?.value || '',
+                // Mission du cabinet (bulle orange)
+                delegation: document.querySelector('input[name="delegation"]:checked')?.value || ''
+            };
+            
+            console.log('Données du formulaire collectées:', formData);
+            
+            // Debug: Check which elements exist
+            const elementsToCheck = [
+                'dossier-num', 'client-name', 'client-email', 'client-sector', 
+                'client-notes', 'client-activity', 'client-siret', 'pa-name'
+            ];
+            
+            const missingElements = elementsToCheck.filter(id => !document.getElementById(id));
+            if (missingElements.length > 0) {
+                console.warn('Éléments manquants dans le formulaire:', missingElements);
+            }
+            
+            if (isEditing) {
+                // Update existing client and redirect to dossier for analysis
+                updateClientAndAnalyze(formData, type);
+            } else {
+                // Create new client
+                saveClientAndStartAnalysis(formData, type);
+            }
+        }
+
+        // Save client and start analysis
+        function saveClientAndStartAnalysis(formData, analysisType) {
+            const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+            
+            const newClient = {
+                id: 'client_' + Date.now(),
+                name: formData.name,
+                email: formData.email,
+                sector: formData.sector,
+                notes: formData.notes,
+                dossierNum: formData.dossierNum,
+                activity: formData.activity,
+                siret: formData.siret,
+                clientAssujettiTVA: formData.clientAssujettiTVA,
+                clientEtabliFranceSiren: formData.clientEtabliFranceSiren,
+                statutTvaClient: formData.statutTvaClient,
+                clientEmetFacturesFrance: formData.clientEmetFacturesFrance,
+                clientTypesFrance: formData.clientTypesFrance || [],
+                natureOperations: formData.natureOperations || [],
+                optionTvaDebits: formData.optionTvaDebits || '',
+                clientsEtranger: formData.clientsEtranger || [],
+                receptionFacturesFournisseurs: formData.receptionFacturesFournisseurs || '',
+                acquisitionsImportations: formData.acquisitionsImportations || [],
+                // Configuration facture électronique
+                paSelection: formData.paSelection || '',
+                paName: formData.paName || '',
+                billingLevel: formData.billingLevel || '',
+                // Logiciels utilisés
+                caisse: formData.caisse || '',
+                facturation: formData.facturation || '',
+                // Mission du cabinet
+                delegation: formData.delegation || '',
+                status: 'en_cours',
+                createdAt: new Date().toISOString(),
+                lastModified: new Date().toISOString(),
+                analyses: {}
+            };
+            
+            clients.push(newClient);
+            localStorage.setItem('clients', JSON.stringify(clients));
+            
+            // Redirect to wizard
+            window.location.href = `wizard.html?client=${encodeURIComponent(newClient.name)}&type=${analysisType}`;
+        }
+
+        // Save and finish for client not subject to TVA
+        function saveAndFinishHorsChampTVA() {
+            // Validate required fields
+            const clientName = document.getElementById('client-name').value.trim();
+            
+            if (!clientName) {
+                showError('Le nom du client est obligatoire.');
+                document.getElementById('client-name').focus();
+                document.getElementById('client-name').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            
+            const formData = {
+                dossierNum: document.getElementById('dossier-num')?.value?.trim() || '',
+                name: clientName,
+                email: document.getElementById('client-email')?.value?.trim() || '',
+                sector: document.getElementById('client-sector')?.value?.trim() || '',
+                notes: document.getElementById('client-notes')?.value?.trim() || '',
+                activity: document.getElementById('client-activity')?.value?.trim() || '',
+                siret: document.getElementById('client-siret')?.value?.trim() || '',
+                clientAssujettiTVA: 'no',
+                horsChamp: true,
+                raisonHorsChamp: 'Client non assujetti à la TVA'
+            };
+            
+            // Save client and redirect
+            saveClientHorsChamp(formData);
+        }
+
+        // Save and finish for client not established in France
+        function saveAndFinishHorsChampFrance() {
+            // Validate required fields
+            const clientName = document.getElementById('client-name').value.trim();
+            
+            if (!clientName) {
+                showError('Le nom du client est obligatoire.');
+                document.getElementById('client-name').focus();
+                document.getElementById('client-name').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            
+            const clientAssujettiTva = document.querySelector('input[name="client-assujetti-tva"]:checked');
+            if (!clientAssujettiTva) {
+                showError('Veuillez répondre à la question 5 sur l\'assujettissement à la TVA.');
+                return;
+            }
+            
+            const formData = {
+                dossierNum: document.getElementById('dossier-num')?.value?.trim() || '',
+                name: clientName,
+                email: document.getElementById('client-email')?.value?.trim() || '',
+                sector: document.getElementById('client-sector')?.value?.trim() || '',
+                notes: document.getElementById('client-notes')?.value?.trim() || '',
+                activity: document.getElementById('client-activity')?.value?.trim() || '',
+                siret: document.getElementById('client-siret')?.value?.trim() || '',
+                clientAssujettiTVA: clientAssujettiTva.value,
+                clientEtabliFranceSiren: 'no',
+                horsChamp: true,
+                raisonHorsChamp: 'Client non établi en France - Pas d\'obligation en France'
+            };
+            
+            // Save client and redirect
+            saveClientHorsChamp(formData);
+        }
+
+        // Save client hors champ (not subject to reform)
+        function saveClientHorsChamp(formData) {
+            const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+            
+            const newClient = {
+                id: 'client_' + Date.now(),
+                name: formData.name,
+                email: formData.email,
+                sector: formData.sector,
+                notes: formData.notes,
+                dossierNum: formData.dossierNum,
+                activity: formData.activity,
+                siret: formData.siret,
+                clientAssujettiTVA: formData.clientAssujettiTVA,
+                clientEtabliFranceSiren: formData.clientEtabliFranceSiren || '',
+                horsChamp: true,
+                raisonHorsChamp: formData.raisonHorsChamp,
+                status: 'termine', // Marquer comme terminé car aucune analyse nécessaire
+                createdAt: new Date().toISOString(),
+                lastModified: new Date().toISOString(),
+                analyses: {}
+            };
+            
+            clients.push(newClient);
+            localStorage.setItem('clients', JSON.stringify(clients));
+            
+            // Redirect to result page
+            window.location.href = `hors-champ.html?client=${encodeURIComponent(newClient.id)}`;
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('form-error');
+            const errorText = document.getElementById('form-error-text');
+            
+            errorText.textContent = message;
+            errorDiv.classList.remove('hidden');
+            
+            // Scroll to error
+            errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Hide error after 5 seconds
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Handle form submission (legacy)
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            // Use the new startAnalysis function instead
+            showError('Veuillez utiliser les boutons d\'analyse ci-dessous.');
+        }
+
+        // Create new client
+        function createClient(formData) {
+            const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+            
+            const newClient = {
+                id: 'client_' + Date.now(),
+                name: formData.name,
+                email: formData.email,
+                sector: formData.sector,
+                notes: formData.notes,
+                status: 'en_cours',
+                createdAt: new Date().toISOString(),
+                lastModified: new Date().toISOString(),
+                analyses: {}
+            };
+            
+            clients.push(newClient);
+            localStorage.setItem('clients', JSON.stringify(clients));
+            
+            // Redirect to first analysis or dossier
+            if (formData.analyseVente) {
+                window.location.href = `wizard.html?client=${encodeURIComponent(newClient.name)}&type=vente`;
+            } else if (formData.analyseAchat) {
+                window.location.href = `wizard.html?client=${encodeURIComponent(newClient.name)}&type=achat`;
+            }
+        }
+
+        // Update existing client
+        function updateClient(formData) {
+            const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+            const clientIndex = clients.findIndex(c => c.id === editingClientId);
+            
+            if (clientIndex !== -1) {
+                clients[clientIndex] = {
+                    ...clients[clientIndex],
+                    name: formData.name,
+                    email: formData.email,
+                    sector: formData.sector,
+                    notes: formData.notes,
+                    dossierNum: formData.dossierNum,
+                    activity: formData.activity,
+                    siret: formData.siret,
+                    clientAssujettiTVA: formData.clientAssujettiTVA,
+                    clientEtabliFranceSiren: formData.clientEtabliFranceSiren,
+                    statutTvaClient: formData.statutTvaClient,
+                    clientEmetFacturesFrance: formData.clientEmetFacturesFrance,
+                    clientTypesFrance: formData.clientTypesFrance || [],
+                    natureOperations: formData.natureOperations || [],
+                    optionTvaDebits: formData.optionTvaDebits || '',
+                    clientsEtranger: formData.clientsEtranger || [],
+                    receptionFacturesFournisseurs: formData.receptionFacturesFournisseurs || '',
+                    acquisitionsImportations: formData.acquisitionsImportations || [],
+                    // Configuration facture électronique
+                    paSelection: formData.paSelection || '',
+                    paName: formData.paName || '',
+                    billingLevel: formData.billingLevel || '',
+                    // Logiciels utilisés
+                    caisse: formData.caisse || '',
+                    facturation: formData.facturation || '',
+                    // Mission du cabinet
+                    delegation: formData.delegation || '',
+                    lastModified: new Date().toISOString()
+                };
+                
+                localStorage.setItem('clients', JSON.stringify(clients));
+                console.log('Client mis à jour avec succès:', clients[clientIndex]);
+                return clients[clientIndex];
+            } else {
+                console.error('Client non trouvé pour mise à jour:', editingClientId);
+                return null;
+            }
+        }
+
+        // Update client and redirect to dossier for analysis
+        function updateClientAndAnalyze(formData, analysisType) {
+            const updatedClient = updateClient(formData);
+            
+            if (updatedClient) {
+                // Redirect to dossier page for analysis
+                window.location.href = `dossier.html?client=${encodeURIComponent(updatedClient.id)}&type=${analysisType}`;
+            } else {
+                showError('Erreur lors de la mise à jour du client.');
+            }
+        }
+
+        // Initialize bubbles state
+        function initializeBubbles() {
+            // Update visual state for any pre-selected radio buttons
+            const allRadios = document.querySelectorAll('.bubble-group input[type="radio"]');
+            allRadios.forEach(radio => {
+                if (radio.checked) {
+                    const group = radio.closest('.bubble-group');
+                    const allBubbles = group.querySelectorAll('.bubble-option');
+                    allBubbles.forEach(bubble => bubble.classList.remove('selected'));
+                    
+                    const correspondingBubble = group.querySelector(`.bubble-option[onclick*="${radio.id}"]`);
+                    if (correspondingBubble) {
+                        correspondingBubble.classList.add('selected');
+                    }
+                }
+            });
+        }
+
+        // Initialize form when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeForm();
+            initializeBubbles();
+            initializeProgressiveQuestions(); // Initialiser l'affichage progressif
+            document.getElementById('client-form').addEventListener('submit', handleFormSubmit);
+        });
+    </script>
+</body>
+</html>

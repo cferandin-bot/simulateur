@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sélection de Rapport - E-Factu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Enhanced button animations */
+        .btn-modern {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-modern:active {
+            transform: translateY(0);
+        }
+        
+        /* Card animations */
+        .report-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .report-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .report-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .report-card:hover::before {
+            left: 100%;
+        }
+        
+        /* Checkbox styling */
+        .custom-checkbox {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .custom-checkbox:checked {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-color: #3b82f6;
+        }
+        
+        .custom-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .custom-checkbox:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Fade in animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        /* Background pattern */
+        .bg-pattern {
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(79, 70, 229, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(99, 102, 241, 0.03) 0%, transparent 50%);
+        }
+        
+        /* Icon animations */
+        .icon-bounce {
+            transition: all 0.3s ease;
+        }
+        
+        .report-card:hover .icon-bounce {
+            transform: scale(1.1) rotate(5deg);
+        }
+        
+        /* Success badge animation */
+        @keyframes pulse-glow {
+            0%, 100% { 
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            }
+            50% { 
+                box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+            }
+        }
+        
+        .success-badge {
+            animation: pulse-glow 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen bg-pattern">
+    <!-- Écran de sélection du type de rapport -->
+    <div id="output-selection-screen" class="p-8 md:p-12 fade-in-up">
+        <!-- Header avec informations client -->
+        <div class="mb-8">
+            <div class="flex items-center justify-center space-x-3 mb-4">
+                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-file-alt text-white text-xl"></i>
+                </div>
+                <div class="text-center">
+                    <h1 class="text-3xl font-bold text-gray-800">Génération de Rapport</h1>
+                    <p class="text-gray-600" id="client-name-display">Chargement...</p>
+                </div>
+            </div>
+            <div class="text-center">
+                <div class="inline-block bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2 rounded-full text-sm font-semibold success-badge">
+                    <i class="fas fa-check-circle mr-2"></i>Analyse terminée avec succès
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="text-center mb-12">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Choisissez le type de rapport</h2>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                Sélectionnez le format de rapport qui correspond à vos besoins. 
+                Le rapport interne contient tous les détails techniques, tandis que le rapport client est adapté pour la communication.
+            </p>
+        </div>
+
+        <!-- Cards de sélection -->
+        <div class="max-w-4xl mx-auto space-y-8">
+            <!-- Rapport Interne -->
+            <div class="report-card bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+                <div class="flex items-start space-x-6">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-file-invoice text-white text-2xl icon-bounce"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-3">Rapport interne</h3>
+                        <p class="text-gray-600 mb-6">
+                            Dossier de travail complet avec tous les détails techniques, notes d'expertise et éléments de conformité.
+                        </p>
+                        
+                        <div class="bg-gray-50 p-6 rounded-xl mb-6">
+                            <h4 class="font-semibold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-cogs mr-2 text-blue-600"></i>
+                                Sections incluses :
+                            </h4>
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <label class="flex items-center space-x-3 cursor-pointer group">
+                                    <input type="checkbox" id="include-notes" checked class="custom-checkbox">
+                                    <span class="text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        <i class="fas fa-sticky-note mr-2 text-blue-500"></i>
+                                        Notes de l'Expert-Comptable
+                                    </span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer group">
+                                    <input type="checkbox" id="include-checklist" checked class="custom-checkbox">
+                                    <span class="text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        <i class="fas fa-tasks mr-2 text-green-500"></i>
+                                        Checklist de conformité
+                                    </span>
+                                </label>
+
+                            </div>
+                        </div>
+                        
+                        <button onclick="generateReport('interne')" class="btn-modern bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-4 px-8 rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800 w-full">
+                            <i class="fas fa-file-invoice mr-3"></i> 
+                            Générer le rapport interne pour le cabinet
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Rapport Client -->
+            <div class="report-card bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+                <div class="flex items-start space-x-6">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-file-contract text-white text-2xl icon-bounce"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-3">Rapport Client</h3>
+                        <p class="text-gray-600 mb-6">
+                            Rapport adapté pour la communication avec le client, avec des explications claires et des recommandations d'action.
+                        </p>
+                        
+                        <div class="bg-green-50 p-6 rounded-xl mb-6 border border-green-200">
+                            <h4 class="font-semibold text-green-800 mb-3 flex items-center">
+                                <i class="fas fa-user-tie mr-2"></i>
+                                Format adapté au client :
+                            </h4>
+                            <ul class="space-y-2 text-green-700">
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle mr-2 text-green-600"></i>
+                                    Explications simplifiées et accessibles
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle mr-2 text-green-600"></i>
+                                    Recommandations d'action prioritaires
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle mr-2 text-green-600"></i>
+                                    Plan de mise en conformité
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle mr-2 text-green-600"></i>
+                                    Calendrier des échéances
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <button onclick="prepareClientReport()" id="client-report-btn" class="btn-modern bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold py-4 px-8 rounded-xl shadow-lg hover:from-green-700 hover:to-green-800 w-full">
+                            <i class="fas fa-file-contract mr-3"></i> 
+                            Générer le rapport à destination du client
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="text-center mt-12">
+            <button onclick="backToDossierScreen()" class="btn-modern bg-gradient-to-r from-gray-600 to-gray-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:from-gray-700 hover:to-gray-800">
+                <i class="fas fa-chevron-left mr-2"></i> 
+                Retour au dossier de travail
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        let currentClient = null;
+
+        // Initialize page
+        function initializePage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const clientId = urlParams.get('client');
+            
+            if (!clientId) {
+                window.location.href = 'client-list.html';
+                return;
+            }
+            
+            // Load client data
+            const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+            currentClient = clients.find(c => c.id === clientId);
+            
+            if (!currentClient) {
+                window.location.href = 'client-list.html';
+                return;
+            }
+            
+            // Update client name display
+            document.getElementById('client-name-display').textContent = currentClient.name;
+        }
+
+        // Generate report
+        function generateReport(type) {
+            const options = {
+                includeNotes: document.getElementById('include-notes').checked,
+                includeChecklist: document.getElementById('include-checklist').checked
+            };
+            
+            // Show loading state
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-3"></i>Génération en cours...';
+            button.disabled = true;
+            
+            // Simulate processing time
+            setTimeout(() => {
+                // Redirect to report page with parameters
+                const params = new URLSearchParams({
+                    client: currentClient.id,
+                    type: type,
+                    options: JSON.stringify(options)
+                });
+                
+                window.location.href = 'report.html?' + params.toString();
+            }, 1000);
+        }
+
+        // Prepare client report
+        function prepareClientReport() {
+            generateReport('client');
+        }
+
+        // Back to dossier
+        function backToDossierScreen() {
+            window.location.href = `dossier.html?client=${currentClient.id}`;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializePage);
+    </script>
+</body>
+</html>
