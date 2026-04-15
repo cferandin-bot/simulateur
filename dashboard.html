@@ -420,6 +420,93 @@
             container.innerHTML = html;
         }
 
+        // Migration v2→v3: remap answer indices after question insertion
+        const MIGRATION_V3_KEY = 'efactu_v3_migrated';
+        const migrationMapV3 = {
+            vente: { oldSize: 33, mapping: { 0:0,1:1,2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,11:11,12:12,13:13,14:14,15:15,16:16,17:17,18:18,19:19,20:20,21:21,22:22,23:23,24:24,25:25,26:26,27:28,28:31,29:32,30:33,31:35,32:42 } },
+            achat: { oldSize: 19, mapping: { 0:0,1:1,2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,11:11,12:12,13:13,14:14,15:15,16:16,17:18,18:19 } }
+        };
+
+        function runMigrationV3() {
+            if (localStorage.getItem(MIGRATION_V3_KEY)) return;
+            console.log('Migration v2→v3...');
+            let migrated = 0;
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (!key || !key.startsWith('wizard_')) continue;
+                const wt = key.endsWith('_vente') ? 'vente' : key.endsWith('_achat') ? 'achat' : null;
+                if (!wt) continue;
+                try {
+                    const answers = JSON.parse(localStorage.getItem(key));
+                    const map = migrationMapV3[wt];
+                    const numKeys = Object.keys(answers).filter(k => !isNaN(k)).map(Number);
+                    const maxK = numKeys.length > 0 ? Math.max(...numKeys) : 0;
+                    const cnt = numKeys.filter(k => answers[k] !== undefined && answers[k] !== null).length;
+                    if (cnt > 0 && maxK <= map.oldSize && cnt <= map.oldSize) {
+                        const newAnswers = {};
+                        Object.keys(answers).forEach(k => {
+                            if (String(k).startsWith('conditional_')) {
+                                const oldIdx = k.replace('conditional_', '');
+                                const newIdx = map.mapping[Number(oldIdx)];
+                                newAnswers[newIdx !== undefined ? `conditional_${newIdx}` : k] = answers[k];
+                            } else if (!isNaN(k)) {
+                                const newIdx = map.mapping[Number(k)];
+                                if (newIdx !== undefined) newAnswers[newIdx] = answers[k];
+                            } else {
+                                newAnswers[k] = answers[k];
+                            }
+                        });
+                        localStorage.setItem(key, JSON.stringify(newAnswers));
+                        migrated++;
+                    }
+                } catch (e) { console.warn('Migration error:', key, e); }
+            }
+
+            try {
+                const clientsRaw = localStorage.getItem('clients');
+                if (clientsRaw) {
+                    const clients = JSON.parse(clientsRaw);
+                    let changed = false;
+                    clients.forEach(client => {
+                        if (!client.analyses) return;
+                        ['vente', 'achat'].forEach(wt => {
+                            if (client.analyses[wt] && client.analyses[wt].answers) {
+                                const ans = client.analyses[wt].answers;
+                                const map = migrationMapV3[wt];
+                                const numKeys = Object.keys(ans).filter(k => !isNaN(k)).map(Number);
+                                const maxK = numKeys.length > 0 ? Math.max(...numKeys) : 0;
+                                const cnt = numKeys.filter(k => ans[k] !== undefined && ans[k] !== null).length;
+                                if (cnt > 0 && maxK <= map.oldSize && cnt <= map.oldSize) {
+                                    const newAns = {};
+                                    Object.keys(ans).forEach(k => {
+                                        if (String(k).startsWith('conditional_')) {
+                                            const oldIdx = k.replace('conditional_', '');
+                                            const newIdx = map.mapping[Number(oldIdx)];
+                                            newAns[newIdx !== undefined ? `conditional_${newIdx}` : k] = ans[k];
+                                        } else if (!isNaN(k)) {
+                                            const newIdx = map.mapping[Number(k)];
+                                            if (newIdx !== undefined) newAns[newIdx] = ans[k];
+                                        } else {
+                                            newAns[k] = ans[k];
+                                        }
+                                    });
+                                    client.analyses[wt].answers = newAns;
+                                    changed = true;
+                                }
+                            }
+                        });
+                    });
+                    if (changed) localStorage.setItem('clients', JSON.stringify(clients));
+                }
+            } catch (e) { console.warn('Migration clients error:', e); }
+
+            localStorage.setItem(MIGRATION_V3_KEY, Date.now().toString());
+            console.log(`Migration v2→v3 done: ${migrated} wizard entries migrated`);
+        }
+
+        runMigrationV3();
+
         function getAllClients() {
             try {
                 const clientsData = localStorage.getItem('clients');
@@ -444,8 +531,8 @@
         // Calculate questionnaire statistics for a client
         function getQuestionnaireStatsForClient(client, wizardType) {
             const totalQuestions = {
-                vente: 33,
-                achat: 19
+                vente: 43,
+                achat: 26
             };
             
             const total = totalQuestions[wizardType] || 0;
