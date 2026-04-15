@@ -768,7 +768,7 @@
                             <input type="radio" name="client-emet-factures-france" id="emets-france-no" value="no" onchange="checkEmetFranceStatus()">
                             <div class="bubble-option" onclick="selectBubble('emets-france-no', 'client-emet-factures-france', this)">
                                 <i class="fas fa-times-circle icon text-red-500"></i>
-                                NON → Aller à Q13 (e-reporting international uniquement)
+                                NON → Passer Q11/Q12, aller à Q13
                             </div>
                         </div>
                         
@@ -979,7 +979,7 @@
                         <div class="mb-4">
                             <p class="text-gray-700 text-sm mb-4 italic">
                                 <i class="fas fa-info-circle text-orange-600 mr-2"></i>
-                                Votre client n'émet pas de factures à des clients en France. Cette question concerne uniquement l'E-REPORTING international.
+                                Cette question concerne l'E-REPORTING international pour les clients à l'étranger.
                             </p>
                         </div>
                         
@@ -1828,10 +1828,10 @@
                 }
             }
             
-            // Question 13 (clients étranger) : Dégriser si Q10 = no → Q13
+            // Question 13 (clients étranger) : Dégriser si Q10 a une réponse (yes ou no) - le client peut avoir des clients en France ET à l'étranger
             const q13 = document.getElementById('question-13-etranger-container');
             if (q13) {
-                if (emetFrance === 'no' && statutTva && statutTva !== 'non-redevable' && clientAssujettiTva === 'yes' && clientEtabliFranceSiren === 'yes') {
+                if (emetFrance && statutTva && statutTva !== 'non-redevable' && clientAssujettiTva === 'yes' && clientEtabliFranceSiren === 'yes') {
                     q13.classList.remove('disabled-question');
                 } else {
                     q13.classList.add('disabled-question');
